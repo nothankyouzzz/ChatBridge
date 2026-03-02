@@ -114,6 +114,7 @@ export async function extractZipEntryToFile(zipPath: string, entryName: string, 
 }
 
 export async function createZipFromDirectory(sourceDir: string, zipPath: string): Promise<void> {
-  await fs.mkdir(path.dirname(zipPath), { recursive: true })
-  await runCommand('zip', ['-rq', zipPath, '.'], { cwd: sourceDir, encoding: 'utf8' })
+  const resolvedZipPath = path.resolve(zipPath)
+  await fs.mkdir(path.dirname(resolvedZipPath), { recursive: true })
+  await runCommand('zip', ['-rq', resolvedZipPath, '.'], { cwd: sourceDir, encoding: 'utf8' })
 }
