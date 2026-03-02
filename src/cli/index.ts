@@ -8,161 +8,129 @@
  * - convert: Transform backups between platforms
  */
 
-import { parseArgs, readBoolFlag, readStringFlag } from './args.ts'
-import { runInspectCommand } from './commands/inspect.ts'
-import { runConvertCommand } from './commands/convert.ts'
+import { Command, Option } from 'commander'
 import type { SourcePlatform } from '../core/schema/core.types.ts'
+import { runConvertCommand } from './commands/convert.ts'
+import { runInspectCommand } from './commands/inspect.ts'
 
-/** Set of valid platform identifiers */
-const platforms = new Set<SourcePlatform>(['chatbox', 'cherry', 'rikkahub'])
+const platforms: SourcePlatform[] = ['chatbox', 'cherry', 'rikkahub']
 
-/**
- * Print CLI usage information to stderr.
- */
-function printUsage(): void {
-  const usage = `ChatBridge CLI
+function parsePlatform(value: string, flagName: string): SourcePlatform {
+  if (platforms.includes(value as SourcePlatform)) {
+    return value as SourcePlatform
+  }
 
-Usage:
-  inspect <input> [--source chatbox|cherry|rikkahub] [--include-secrets] [--stream-threshold-mb <n>]
-  convert <input> --to chatbox|cherry|rikkahub --out <output> [--from chatbox|cherry|rikkahub] [--include-secrets] [--preserve-private-state <true|false>] [--stream-threshold-mb <n>] [--asset-mode inline|external]
-`
-
-  process.stderr.write(usage)
+  throw new Error(`Invalid ${flagName} value: ${value}. Expected one of chatbox|cherry|rikkahub`)
 }
 
-/**
- * Parse and validate a platform identifier from flag value.
- *
- * @param value - Raw flag value
- * @param flagName - Name of the flag (for error messages)
- * @returns Validated platform identifier or undefined
- * @throws Error if value is not a valid platform
- */
-function readPlatform(value: string | undefined, flagName: string): SourcePlatform | undefined {
-  if (!value) {
-    return undefined
-  }
-
-  if (!platforms.has(value as SourcePlatform)) {
-    throw new Error(`Invalid ${flagName} value: ${value}. Expected one of chatbox|cherry|rikkahub`)
-  }
-
-  return value as SourcePlatform
-}
-
-/**
- * Parse and validate a numeric flag value.
- *
- * @param flags - Parsed flags object
- * @param key - Flag name to retrieve
- * @returns Parsed number or undefined
- * @throws Error if value is not a valid non-negative number
- */
-function readNumberFlag(flags: Record<string, string | boolean>, key: string): number | undefined {
-  const value = readStringFlag(flags, key)
-  if (!value) {
-    return undefined
-  }
-
+function parseNonNegativeNumber(value: string, flagName: string): number {
   const parsed = Number(value)
   if (!Number.isFinite(parsed) || parsed < 0) {
-    throw new Error(`Invalid --${key} value: ${value}`)
+    throw new Error(`Invalid ${flagName} value: ${value}`)
   }
-
   return parsed
 }
 
-/**
- * Parse and validate the asset mode flag.
- *
- * @param flags - Parsed flags object
- * @returns Asset mode ('inline' or 'external')
- * @throws Error if value is not 'inline' or 'external'
- */
-function readAssetMode(flags: Record<string, string | boolean>): 'inline' | 'external' {
-  const value = readStringFlag(flags, 'asset-mode')
-  if (!value) {
-    return 'inline'
+function parseBooleanish(value: string | undefined, flagName: string): boolean {
+  if (value === undefined) {
+    return true
   }
 
-  if (value !== 'inline' && value !== 'external') {
-    throw new Error(`Invalid --asset-mode value: ${value}. Expected inline|external`)
+  const normalized = value.toLowerCase()
+  if (normalized === '1' || normalized === 'true' || normalized === 'yes') {
+    return true
+  }
+  if (normalized === '0' || normalized === 'false' || normalized === 'no') {
+    return false
   }
 
-  return value
+  throw new Error(`Invalid ${flagName} value: ${value}`)
 }
 
-/**
- * Main CLI entry point.
- * Parses arguments and dispatches to appropriate command handler.
- */
-async function main(): Promise<void> {
-  const parsed = parseArgs(process.argv.slice(2))
-  const command = parsed.command
+const cli = new Command()
+cli
+  .name('chatbridge')
+  .description('Universal converter for Chatbox, Cherry Studio, and Rikkahub backups.')
+  .showHelpAfterError()
 
-  if (!command) {
-    printUsage()
-    process.exitCode = 1
-    return
-  }
-
-  // Handle 'inspect' command
-  if (command === 'inspect') {
-    const inputPath = parsed.positional[1]
-    if (!inputPath) {
-      throw new Error('inspect requires <input> path')
-    }
-
+cli
+  .command('inspect')
+  .argument('<input>', 'Input backup path (.json or .zip)')
+  .addOption(
+    new Option('--source <platform>', 'Force parser source: chatbox|cherry|rikkahub')
+      .argParser((value) => parsePlatform(value, '--source'))
+  )
+  .option('--include-secrets', 'Include secret provider fields in parse result', false)
+  .addOption(
+    new Option('--stream-threshold-mb <n>', 'Switch large JSON reads to stream parse path').argParser((value) =>
+      parseNonNegativeNumber(value, '--stream-threshold-mb')
+    )
+  )
+  .action(async (inputPath: string, options: {
+    source?: SourcePlatform
+    includeSecrets?: boolean
+    streamThresholdMb?: number
+  }) => {
     await runInspectCommand({
       inputPath,
-      source: readPlatform(readStringFlag(parsed.flags, 'source'), '--source'),
-      includeSecrets: readBoolFlag(parsed.flags, 'include-secrets'),
-      streamThresholdMb: readNumberFlag(parsed.flags, 'stream-threshold-mb'),
+      source: options.source,
+      includeSecrets: options.includeSecrets === true,
+      streamThresholdMb: options.streamThresholdMb,
     })
-    return
-  }
+  })
 
-  // Handle 'convert' command
-  if (command === 'convert') {
-    const inputPath = parsed.positional[1]
-    if (!inputPath) {
-      throw new Error('convert requires <input> path')
-    }
-
-    const target = readPlatform(readStringFlag(parsed.flags, 'to'), '--to')
-    if (!target) {
-      throw new Error('convert requires --to chatbox|cherry|rikkahub')
-    }
-
-    const outputPath = readStringFlag(parsed.flags, 'out')
-    if (!outputPath) {
-      throw new Error('convert requires --out <output>')
-    }
-
-    // preserve-private-state defaults to true if not specified
-    const preservePrivateState =
-      parsed.flags['preserve-private-state'] === undefined
-        ? true
-        : readBoolFlag(parsed.flags, 'preserve-private-state')
-
+cli
+  .command('convert')
+  .argument('<input>', 'Input backup path (.json or .zip)')
+  .addOption(
+    new Option('--to <platform>', 'Target platform: chatbox|cherry|rikkahub')
+      .makeOptionMandatory(true)
+      .argParser((value) => parsePlatform(value, '--to'))
+  )
+  .requiredOption('--out <output>', 'Output file or directory path')
+  .addOption(
+    new Option('--from <platform>', 'Force parser source: chatbox|cherry|rikkahub')
+      .argParser((value) => parsePlatform(value, '--from'))
+  )
+  .option('--include-secrets', 'Include secret provider fields in generated output', false)
+  .addOption(
+    new Option(
+      '--preserve-private-state [value]',
+      'Preserve passthrough/transport private state (true|false)'
+    ).argParser((value) => parseBooleanish(value, '--preserve-private-state'))
+  )
+  .addOption(
+    new Option('--stream-threshold-mb <n>', 'Switch large JSON reads to stream parse path').argParser((value) =>
+      parseNonNegativeNumber(value, '--stream-threshold-mb')
+    )
+  )
+  .addOption(new Option('--asset-mode <mode>', 'Asset mode: inline|external').choices(['inline', 'external']).default('inline'))
+  .action(async (inputPath: string, options: {
+    to: SourcePlatform
+    out: string
+    from?: SourcePlatform
+    includeSecrets?: boolean
+    preservePrivateState?: boolean
+    streamThresholdMb?: number
+    assetMode?: 'inline' | 'external'
+  }) => {
     await runConvertCommand({
       inputPath,
-      outputPath,
-      source: readPlatform(readStringFlag(parsed.flags, 'from'), '--from'),
-      target,
-      includeSecrets: readBoolFlag(parsed.flags, 'include-secrets'),
-      preservePrivateState,
-      streamThresholdMb: readNumberFlag(parsed.flags, 'stream-threshold-mb'),
-      assetMode: readAssetMode(parsed.flags),
+      outputPath: options.out,
+      source: options.from,
+      target: options.to,
+      includeSecrets: options.includeSecrets === true,
+      preservePrivateState: options.preservePrivateState ?? true,
+      streamThresholdMb: options.streamThresholdMb,
+      assetMode: options.assetMode ?? 'inline',
     })
-    return
-  }
+  })
 
-  throw new Error(`Unknown command: ${command}`)
+async function main(): Promise<void> {
+  await cli.parseAsync(process.argv)
 }
 
-// Run main and handle errors gracefully
 main().catch((error) => {
-  process.stderr.write(`${(error as Error).message}\n`)
+  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`)
   process.exitCode = 1
 })
