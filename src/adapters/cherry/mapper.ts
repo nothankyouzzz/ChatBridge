@@ -5,12 +5,7 @@
  * IndexedDB tables) and the universal Core schema. Both directions are handled
  * here to keep the data model co-located.
  */
-import type {
-  CoreConversation,
-  CoreMessage,
-  CorePart,
-  CoreProvider,
-} from '../../core/schema/core.types.ts'
+import type { CoreConversation, CoreMessage, CorePart, CoreProvider } from '../../core/schema/core.types.ts'
 import {
   attachTransportExtensions,
   capturePlatformPassthrough,
@@ -143,12 +138,7 @@ export function mapCherryBlockToCoreParts(rawBlock: unknown): CorePart[] {
       return [
         {
           type: 'file',
-          uri:
-            typeof file?.path === 'string'
-              ? file.path
-              : typeof file?.id === 'string'
-                ? `file:${file.id}`
-                : '',
+          uri: typeof file?.path === 'string' ? file.path : typeof file?.id === 'string' ? `file:${file.id}` : '',
           name: typeof file?.name === 'string' ? file.name : undefined,
           mime: typeof file?.type === 'string' ? file.type : undefined,
         },
@@ -201,7 +191,7 @@ export function mapCherryBlockToCoreParts(rawBlock: unknown): CorePart[] {
 export function mapCherryMessageToCore(
   rawMessage: unknown,
   blockMap: Map<string, Record<string, unknown>>,
-  includeSecrets: boolean = false
+  includeSecrets: boolean = false,
 ): CoreMessage {
   const message = asRecord(rawMessage)
   if (!message) {
@@ -260,24 +250,29 @@ export function mapCherryMessageToCore(
   const transportExtensions = readTransportExtensions(message)
 
   const passthrough = compactObject({
-    ...Object.fromEntries(Object.entries(message).filter(([key]) => ![
-      'id',
-      'role',
-      'assistantId',
-      'topicId',
-      'createdAt',
-      'updatedAt',
-      'status',
-      'modelId',
-      'model',
-      'usage',
-      'blocks',
-      'providerMetadata',
-      'type',
-      'useful',
-      'askId',
-      '__chatbridge_extensions',
-    ].includes(key))),
+    ...Object.fromEntries(
+      Object.entries(message).filter(
+        ([key]) =>
+          ![
+            'id',
+            'role',
+            'assistantId',
+            'topicId',
+            'createdAt',
+            'updatedAt',
+            'status',
+            'modelId',
+            'model',
+            'usage',
+            'blocks',
+            'providerMetadata',
+            'type',
+            'useful',
+            'askId',
+            '__chatbridge_extensions',
+          ].includes(key),
+      ),
+    ),
     raw: {
       type: message.type,
       useful: message.useful,
@@ -285,7 +280,7 @@ export function mapCherryMessageToCore(
     },
   })
 
-  let extensions = compactObject({
+  let extensions: Record<string, unknown> = compactObject({
     ...(transportExtensions ?? {}),
     topicId: typeof message.topicId === 'string' ? message.topicId : undefined,
     assistantId: typeof message.assistantId === 'string' ? message.assistantId : undefined,
@@ -308,7 +303,12 @@ export function mapCherryMessageToCore(
     finishedAt: toIsoUtc(message.updatedAt),
     model: compactObject({
       providerId: typeof modelRecord?.provider === 'string' ? modelRecord.provider : undefined,
-      modelId: typeof message.modelId === 'string' ? message.modelId : typeof modelRecord?.id === 'string' ? modelRecord.id : undefined,
+      modelId:
+        typeof message.modelId === 'string'
+          ? message.modelId
+          : typeof modelRecord?.id === 'string'
+            ? modelRecord.id
+            : undefined,
       displayName:
         typeof modelRecord?.name === 'string'
           ? modelRecord.name
@@ -326,7 +326,10 @@ export function mapCherryMessageToCore(
 /**
  * Map Cherry provider slice to Core provider list.
  */
-export function mapCherryProvidersToCore(persistState: Record<string, unknown>, includeSecrets: boolean): CoreProvider[] {
+export function mapCherryProvidersToCore(
+  persistState: Record<string, unknown>,
+  includeSecrets: boolean,
+): CoreProvider[] {
   const llmSlice = asRecord(persistState.llm)
   const providers = Array.isArray(llmSlice?.providers) ? llmSlice.providers : []
 
@@ -358,7 +361,7 @@ export function mapCherryProvidersToCore(persistState: Record<string, unknown>, 
             .filter((item): item is NonNullable<typeof item> => Boolean(item))
         : []
 
-      let extensions = compactObject({
+      let extensions: Record<string, unknown> = compactObject({
         providerType: provider.type,
         authType: provider.authType,
         notes: provider.notes,
@@ -374,8 +377,11 @@ export function mapCherryProvidersToCore(persistState: Record<string, unknown>, 
       const passthrough = compactObject({
         ...Object.fromEntries(
           Object.entries(provider).filter(
-            ([key]) => !['id', 'type', 'name', 'enabled', 'apiHost', 'apiKey', 'models', '__chatbridge_extensions'].includes(key)
-          )
+            ([key]) =>
+              !['id', 'type', 'name', 'enabled', 'apiHost', 'apiKey', 'models', '__chatbridge_extensions'].includes(
+                key,
+              ),
+          ),
         ),
       })
 
@@ -408,7 +414,7 @@ export function mapCherryTopicsToCoreConversations(
   topicsRaw: unknown,
   blocksRaw: unknown,
   topicMetaMap: Map<string, Record<string, unknown>>,
-  includeSecrets: boolean = false
+  includeSecrets: boolean = false,
 ): CoreConversation[] {
   const topics = Array.isArray(topicsRaw) ? topicsRaw : []
   const blocks = Array.isArray(blocksRaw) ? blocksRaw : []
@@ -458,7 +464,7 @@ export function mapCherryTopicsToCoreConversations(
         ...(meta && typeof meta === 'object' ? (readTransportExtensions(meta as Record<string, unknown>) ?? {}) : {}),
       })
 
-      let extensions = compactObject({
+      let extensions: Record<string, unknown> = compactObject({
         ...transportExtensions,
         cherryTopicMeta: meta,
       })
@@ -506,7 +512,7 @@ function mapCorePartToCherryBlock(
   messageId: string,
   part: CorePart,
   index: number,
-  fallbackTimestamp: string
+  fallbackTimestamp: string,
 ): Record<string, unknown> {
   const blockId = `${messageId}-block-${index}`
 
@@ -598,7 +604,7 @@ function mapCorePartToCherryBlock(
  */
 export function mapCoreConversationsToCherryTables(
   conversations: CoreConversation[],
-  preservePrivateState: boolean = true
+  preservePrivateState: boolean = true,
 ): {
   topics: Record<string, unknown>[]
   messageBlocks: Record<string, unknown>[]
@@ -625,45 +631,43 @@ export function mapCoreConversationsToCherryTables(
 
     for (const message of conversation.messages) {
       const createdAt = message.createdAt ?? new Date().toISOString()
-      const blocks = message.parts.map((part, index) =>
-        mapCorePartToCherryBlock(message.id, part, index, createdAt)
-      )
+      const blocks = message.parts.map((part, index) => mapCorePartToCherryBlock(message.id, part, index, createdAt))
 
       messageBlocks.push(...blocks)
 
       const messageBase = compactObject({
-          id: message.id,
-          role: mapCoreRoleToCherryRole(message.role),
-          assistantId: conversation.assistantId ?? 'chatbridge-assistant',
-          topicId: conversation.id,
-          createdAt,
-          updatedAt: message.finishedAt,
-          status: message.status ?? 'success',
-          modelId: message.model?.modelId,
-          model: message.model
-            ? {
-                id: message.model.modelId ?? 'unknown',
-                provider: message.model.providerId ?? 'unknown',
-                name: message.model.displayName ?? message.model.modelId ?? 'unknown',
-                group: 'chatbridge',
-              }
-            : undefined,
-          usage: message.usage
-            ? {
-                prompt_tokens: message.usage.promptTokens,
-                completion_tokens: message.usage.completionTokens,
-                cached_tokens: message.usage.cachedTokens,
-                total_tokens: message.usage.totalTokens,
-              }
-            : undefined,
-          blocks: blocks.map((block) => block.id),
-        })
+        id: message.id,
+        role: mapCoreRoleToCherryRole(message.role),
+        assistantId: conversation.assistantId ?? 'chatbridge-assistant',
+        topicId: conversation.id,
+        createdAt,
+        updatedAt: message.finishedAt,
+        status: message.status ?? 'success',
+        modelId: message.model?.modelId,
+        model: message.model
+          ? {
+              id: message.model.modelId ?? 'unknown',
+              provider: message.model.providerId ?? 'unknown',
+              name: message.model.displayName ?? message.model.modelId ?? 'unknown',
+              group: 'chatbridge',
+            }
+          : undefined,
+        usage: message.usage
+          ? {
+              prompt_tokens: message.usage.promptTokens,
+              completion_tokens: message.usage.completionTokens,
+              cached_tokens: message.usage.cachedTokens,
+              total_tokens: message.usage.totalTokens,
+            }
+          : undefined,
+        blocks: blocks.map((block) => block.id),
+      })
 
       const messageMerged = mergeWithPlatformPassthrough(
         messageBase,
         message.extensions,
         'cherry',
-        preservePrivateState
+        preservePrivateState,
       )
       messages.push(preservePrivateState ? attachTransportExtensions(messageMerged, message.extensions) : messageMerged)
     }
@@ -677,25 +681,25 @@ export function mapCoreConversationsToCherryTables(
     topics.push(preservePrivateState ? attachTransportExtensions(topicMerged, conversation.extensions) : topicMerged)
 
     const assistantTopicBase = compactObject({
-        id: conversation.id,
-        assistantId: conversation.assistantId ?? 'chatbridge-assistant',
-        name: conversation.title,
-        createdAt: conversation.createdAt ?? new Date().toISOString(),
-        updatedAt: conversation.updatedAt ?? conversation.createdAt ?? new Date().toISOString(),
-        pinned: conversation.pinned ?? false,
-        type: 'chat',
-      })
+      id: conversation.id,
+      assistantId: conversation.assistantId ?? 'chatbridge-assistant',
+      name: conversation.title,
+      createdAt: conversation.createdAt ?? new Date().toISOString(),
+      updatedAt: conversation.updatedAt ?? conversation.createdAt ?? new Date().toISOString(),
+      pinned: conversation.pinned ?? false,
+      type: 'chat',
+    })
 
     const assistantTopicMerged = mergeWithPlatformPassthrough(
       assistantTopicBase,
       conversation.extensions,
       'cherry',
-      preservePrivateState
+      preservePrivateState,
     )
     assistantTopics.push(
       preservePrivateState
         ? attachTransportExtensions(assistantTopicMerged, conversation.extensions)
-        : assistantTopicMerged
+        : assistantTopicMerged,
     )
   }
 
@@ -721,7 +725,7 @@ export function mapCoreConversationsToCherryTables(
 export function mapCoreProvidersToCherryLlmSlice(
   providers: CoreProvider[],
   includeSecrets: boolean,
-  preservePrivateState: boolean = true
+  preservePrivateState: boolean = true,
 ): Record<string, unknown> {
   const cherryProviders = providers.map((provider) => {
     const modelFallback = provider.models?.[0]
@@ -730,7 +734,7 @@ export function mapCoreProvidersToCherryLlmSlice(
       id: provider.id,
       type: provider.type,
       name: provider.name ?? provider.id,
-      apiKey: includeSecrets ? provider.apiKey ?? '' : '',
+      apiKey: includeSecrets ? (provider.apiKey ?? '') : '',
       apiHost: provider.endpoint ?? '',
       models: (provider.models ?? []).map((model) => ({
         id: model.id,
@@ -749,8 +753,8 @@ export function mapCoreProvidersToCherryLlmSlice(
     return preservePrivateState ? attachTransportExtensions(merged, provider.extensions) : merged
   })
 
-  const firstProvider = cherryProviders[0]
-  const firstModel = firstProvider?.models?.[0]
+  const firstProvider = cherryProviders[0] as Record<string, unknown> | undefined
+  const firstModel = (firstProvider?.models as Record<string, unknown>[] | undefined)?.[0]
 
   return {
     providers: cherryProviders,

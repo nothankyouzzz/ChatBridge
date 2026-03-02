@@ -1,5 +1,4 @@
 import path from 'node:path'
-import fs from 'node:fs/promises'
 import { createTempDir, ensureDir, removeDir } from '../../io/fs.ts'
 import { writeJsonFile } from '../../io/json.ts'
 import { createZipFromDirectory } from '../../io/zip.ts'
@@ -8,17 +7,9 @@ import {
   mergeWithPlatformPassthrough,
   readPlatformPassthrough,
 } from '../../core/extensions/passthrough.ts'
-import type {
-  CoreBundle,
-  GenerateOptions,
-  GeneratedArtifact,
-  OutputTarget,
-} from '../../core/schema/core.types.ts'
+import type { CoreBundle, GenerateOptions, GeneratedArtifact, OutputTarget } from '../../core/schema/core.types.ts'
 import type { TargetGenerator } from '../types.ts'
-import {
-  mapCoreConversationsToCherryTables,
-  mapCoreProvidersToCherryLlmSlice,
-} from './mapper.ts'
+import { mapCoreConversationsToCherryTables, mapCoreProvidersToCherryLlmSlice } from './mapper.ts'
 
 /**
  * Resolve output json/zip paths for Cherry generation.
@@ -49,7 +40,7 @@ function resolvePaths(targetPath: string): {
 function buildPersistState(
   assistantsSlice: Record<string, unknown>,
   llmSlice: Record<string, unknown>,
-  rawPersistState?: unknown
+  rawPersistState?: unknown,
 ): string {
   const persistPayload: Record<string, string> = {}
 
@@ -106,7 +97,7 @@ export class CherryGenerator implements TargetGenerator {
   async generate(
     bundle: CoreBundle,
     output: OutputTarget,
-    options: GenerateOptions = {}
+    options: GenerateOptions = {},
   ): Promise<GeneratedArtifact[]> {
     const now = options.now ?? new Date()
     const preservePrivateState = options.preservePrivateState !== false
@@ -114,16 +105,17 @@ export class CherryGenerator implements TargetGenerator {
 
     const { topics, messageBlocks, assistantsSlice } = mapCoreConversationsToCherryTables(
       bundle.conversations,
-      preservePrivateState
+      preservePrivateState,
     )
     const llmSlice = mapCoreProvidersToCherryLlmSlice(
       bundle.providers,
       options.includeSecrets === true,
-      preservePrivateState
+      preservePrivateState,
     )
 
     const passthrough = readPlatformPassthrough(bundle.extensions, 'cherry')
-    const passthroughRecord = passthrough && typeof passthrough === 'object' ? (passthrough as Record<string, unknown>) : {}
+    const passthroughRecord =
+      passthrough && typeof passthrough === 'object' ? (passthrough as Record<string, unknown>) : {}
     const passthroughLocalStorage =
       passthroughRecord.localStorage && typeof passthroughRecord.localStorage === 'object'
         ? (passthroughRecord.localStorage as Record<string, unknown>)
@@ -136,32 +128,32 @@ export class CherryGenerator implements TargetGenerator {
     // KISS merge policy:
     // keep deterministic Core projection, then re-apply Cherry passthrough.
     const mergedBackupData = mergeWithPlatformPassthrough(
-        {
-          time: now.getTime(),
-          version: 5,
-          localStorage: {
-            ...passthroughLocalStorage,
-            'persist:cherry-studio': buildPersistState(
-              assistantsSlice,
-              llmSlice,
-              passthroughLocalStorage['persist:cherry-studio']
-            ),
-          },
-          indexedDB: {
-            ...passthroughIndexedDB,
-            files: [],
-            topics,
-            settings: [],
-            knowledge_notes: [],
-            translate_history: [],
-            translate_languages: [],
-            quick_phrases: [],
-            message_blocks: messageBlocks,
-          },
+      {
+        time: now.getTime(),
+        version: 5,
+        localStorage: {
+          ...passthroughLocalStorage,
+          'persist:cherry-studio': buildPersistState(
+            assistantsSlice,
+            llmSlice,
+            passthroughLocalStorage['persist:cherry-studio'],
+          ),
         },
-        bundle.extensions,
-        'cherry',
-        preservePrivateState
+        indexedDB: {
+          ...passthroughIndexedDB,
+          files: [],
+          topics,
+          settings: [],
+          knowledge_notes: [],
+          translate_history: [],
+          translate_languages: [],
+          quick_phrases: [],
+          message_blocks: messageBlocks,
+        },
+      },
+      bundle.extensions,
+      'cherry',
+      preservePrivateState,
     )
     const backupData = preservePrivateState
       ? attachTransportExtensions(mergedBackupData, bundle.extensions)
