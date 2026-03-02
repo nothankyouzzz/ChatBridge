@@ -1,0 +1,18 @@
+{
+  "name": "chatbridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Universal converter for Chatbox, Cherry Studio, and Rikkahub backups.",
+  "type": "module",
+  "engines": {
+    "node": ">=25"
+  },
+  "scripts": {
+    "inspect": "node --experimental-strip-types src/cli/index.ts inspect",
+    "convert": "node --experimental-strip-types src/cli/index.ts convert",
+    "test": "node --test --test-concurrency=1 --experimental-strip-types src/test/contract/*.spec.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.3"
+  }
+}
