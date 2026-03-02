@@ -12,6 +12,16 @@
     "convert": "node --experimental-strip-types src/cli/index.ts convert",
     "test": "node --test --test-concurrency=1 --experimental-strip-types src/test/contract/*.spec.ts"
   },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "commander": "^14.0.2",
+    "deepmerge": "^4.3.1",
+    "rfdc": "^1.4.1",
+    "stream-json": "^1.9.1",
+    "unzipper": "^0.12.3",
+    "uuid": "^13.0.0",
+    "zod": "^4.1.11"
+  },
   "devDependencies": {
     "@types/node": "^25.3.3"
   }
