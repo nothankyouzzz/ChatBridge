@@ -1,0 +1,9 @@
+[submodule "references/chatbox"]
+	path = references/chatbox
+	url = https://github.com/Bin-Huang/chatbox.git
+[submodule "references/rikkahub"]
+	path = references/rikkahub
+	url = https://github.com/rikkahub/rikkahub.git
+[submodule "references/cherry-studio"]
+	path = references/cherry-studio
+	url = https://github.com/CherryHQ/cherry-studio.git
