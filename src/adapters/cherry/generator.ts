@@ -46,15 +46,52 @@ function resolvePaths(targetPath: string): {
 /**
  * Build persisted Redux payload string used by Cherry localStorage.
  */
-function buildPersistState(assistantsSlice: Record<string, unknown>, llmSlice: Record<string, unknown>): string {
-  const persistPayload = {
-    assistants: JSON.stringify(assistantsSlice),
-    llm: JSON.stringify(llmSlice),
-    settings: JSON.stringify({}),
-    _persist: JSON.stringify({
+function buildPersistState(
+  assistantsSlice: Record<string, unknown>,
+  llmSlice: Record<string, unknown>,
+  rawPersistState?: unknown
+): string {
+  const persistPayload: Record<string, string> = {}
+
+  if (typeof rawPersistState === 'string') {
+    try {
+      const parsed = JSON.parse(rawPersistState) as Record<string, unknown>
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        for (const [key, value] of Object.entries(parsed)) {
+          persistPayload[key] = typeof value === 'string' ? value : JSON.stringify(value)
+        }
+      }
+    } catch {
+      // Ignore malformed persisted payload and rebuild a safe minimal shape.
+    }
+  }
+
+  // Always project deterministic assistants + llm from Core.
+  persistPayload.assistants = JSON.stringify(assistantsSlice)
+  persistPayload.llm = JSON.stringify(llmSlice)
+
+  // If settings payload is malformed or effectively empty, drop it.
+  // Cherry will then fall back to reducer initialState during rehydration.
+  if (typeof persistPayload.settings === 'string') {
+    try {
+      const parsedSettings = JSON.parse(persistPayload.settings) as Record<string, unknown>
+      const userTheme = parsedSettings?.userTheme
+      const hasUsableUserTheme =
+        !!userTheme && typeof userTheme === 'object' && !Array.isArray(userTheme) && 'colorPrimary' in userTheme
+
+      if (!hasUsableUserTheme) {
+        delete persistPayload.settings
+      }
+    } catch {
+      delete persistPayload.settings
+    }
+  }
+
+  if (typeof persistPayload._persist !== 'string') {
+    persistPayload._persist = JSON.stringify({
       version: 199,
       rehydrated: true,
-    }),
+    })
   }
 
   return JSON.stringify(persistPayload)
@@ -104,7 +141,11 @@ export class CherryGenerator implements TargetGenerator {
           version: 5,
           localStorage: {
             ...passthroughLocalStorage,
-            'persist:cherry-studio': buildPersistState(assistantsSlice, llmSlice),
+            'persist:cherry-studio': buildPersistState(
+              assistantsSlice,
+              llmSlice,
+              passthroughLocalStorage['persist:cherry-studio']
+            ),
           },
           indexedDB: {
             ...passthroughIndexedDB,
