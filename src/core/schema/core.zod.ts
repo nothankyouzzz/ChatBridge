@@ -239,7 +239,7 @@ export const CoreBundleSchema = {
     }
 
     const issues = result.error.issues.map((issue) => {
-      const location = formatPath(issue.path)
+      const location = formatPath(issue.path as (string | number)[])
       return `${location} ${issue.message}`.trim()
     })
 
