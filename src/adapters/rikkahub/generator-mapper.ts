@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto'
 import path from 'node:path'
+import { v5 as uuidv5, validate as uuidValidate } from 'uuid'
 import type {
   CoreBundle,
   CoreConversation,
@@ -12,6 +12,7 @@ import { toEpochMillis } from '../../core/normalize/time.ts'
 
 const DEFAULT_ASSISTANT_ID = '0950e2dc-9bd5-4801-afa3-aa887aa36b4e'
 const DEFAULT_AUTO_MODEL_ID = 'b7055fb4-39f9-4042-a88a-0d80ed76cf08'
+const CHATBRIDGE_UUID_NAMESPACE = '4cb2f729-8f1f-4c24-b8e4-ff3fb9f98903'
 
 export type RikkahubConversationInsert = {
   id: string
@@ -44,21 +45,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isUuid(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
-    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(value)
-  )
+  return typeof value === 'string' && uuidValidate(value)
 }
 
 function toDeterministicUuid(seed: string): string {
-  const hex = createHash('sha256').update(seed).digest('hex').slice(0, 32).split('')
-
-  hex[12] = '4'
-  const nibble = parseInt(hex[16], 16)
-  hex[16] = ((nibble & 0x3) | 0x8).toString(16)
-
-  const h = hex.join('')
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`
+  return uuidv5(seed, CHATBRIDGE_UUID_NAMESPACE)
 }
 
 class StableUuidRegistry {
