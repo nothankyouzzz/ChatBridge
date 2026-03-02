@@ -1,3 +1,19 @@
 # Ignore external reference codebases
 references/
 
+# Node artifacts
+node_modules/
+coverage/
+
+# Build/output
+out/
+dist/
+
+# Temp files
+*.log
+*.tmp
+*.temp
+.DS_Store
+
+# Editor settings
+.vscode/
