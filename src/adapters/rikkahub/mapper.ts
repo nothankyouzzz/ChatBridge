@@ -17,60 +17,7 @@ import { capturePlatformPassthrough, readTransportExtensions } from '../../core/
 import { normalizeProviderType } from '../../core/mapping/provider-map.ts'
 import { normalizeRole } from '../../core/normalize/role.ts'
 import { toIsoUtc } from '../../core/normalize/time.ts'
-
-/** Return `value` as a plain object, or `undefined` if it is null/array/primitive. */
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as Record<string, unknown>
-  }
-  return undefined
-}
-
-/** Return a copy of `value` with all `undefined` entries removed. */
-function compactObject<T extends Record<string, unknown>>(value: T): T {
-  const output: Record<string, unknown> = {}
-  for (const [key, current] of Object.entries(value)) {
-    if (current !== undefined) {
-      output[key] = current
-    }
-  }
-  return output as T
-}
-
-/**
- * Try to JSON-parse a string value.
- * Returns the original value unchanged when the input is not a string
- * or when parsing fails (e.g. already a parsed object stored in the column).
- */
-function parseJsonOrRaw(value: unknown): unknown {
-  if (typeof value !== 'string') {
-    return value
-  }
-
-  try {
-    return JSON.parse(value)
-  } catch {
-    return value
-  }
-}
-
-/**
- * Deserialize the `input` field from a Rikkahub tool-call node.
- *
- * Rikkahub serializes tool arguments as a JSON string in the database.
- * If `input` is already an object (e.g. during a roundtrip) it is returned as-is.
- */
-function mapToolInput(input: unknown): unknown {
-  if (typeof input !== 'string') {
-    return input
-  }
-
-  try {
-    return JSON.parse(input)
-  } catch {
-    return input
-  }
-}
+import { asRecord, compactObject, safeParseJson } from '../../core/util.ts'
 
 /**
  * Map one Rikkahub UI part into Core part list.
@@ -117,7 +64,7 @@ export function mapRikkahubUiPartToCoreParts(rawPart: unknown): CorePart[] {
           type: 'tool_call',
           toolName,
           callId,
-          args: mapToolInput(part.input),
+          args: safeParseJson(part.input),
         },
         {
           type: 'tool_result',
@@ -133,16 +80,9 @@ export function mapRikkahubUiPartToCoreParts(rawPart: unknown): CorePart[] {
 }
 
 /**
- * Backward-compatible wrapper without secret passthrough.
- */
-export function mapRikkahubUiMessageToCore(rawMessage: unknown): CoreMessage {
-  return mapRikkahubUiMessageToCoreWithSecrets(rawMessage, false)
-}
-
-/**
  * Map one Rikkahub UI message JSON record into Core message.
  */
-export function mapRikkahubUiMessageToCoreWithSecrets(rawMessage: unknown, includeSecrets: boolean): CoreMessage {
+export function mapRikkahubUiMessageToCore(rawMessage: unknown, includeSecrets: boolean = false): CoreMessage {
   const message = asRecord(rawMessage)
   if (!message) {
     return {
@@ -165,7 +105,6 @@ export function mapRikkahubUiMessageToCoreWithSecrets(rawMessage: unknown, inclu
           !['id', 'role', 'parts', 'annotations', 'createdAt', 'finishedAt', 'modelId', 'usage', 'translation', '__chatbridge_extensions'].includes(key)
       )
     ),
-    translation: message.translation,
   })
 
   let extensions = compactObject({
@@ -336,9 +275,9 @@ export function mapRikkahubRowsToCoreConversations(
     const branchPoints: CoreBranchPoint[] = []
 
     for (const node of rows) {
-      const parsed = parseJsonOrRaw(node.messages)
+      const parsed = safeParseJson(node.messages)
       const variantsRaw = Array.isArray(parsed) ? parsed : []
-      const variants = variantsRaw.map((variant) => mapRikkahubUiMessageToCoreWithSecrets(variant, includeSecrets))
+      const variants = variantsRaw.map((variant) => mapRikkahubUiMessageToCore(variant, includeSecrets))
 
       if (variants.length === 0) {
         continue
@@ -374,15 +313,15 @@ export function mapRikkahubRowsToCoreConversations(
     }
 
     const passthrough = compactObject({
-      nodes: parseJsonOrRaw(conversation.nodes),
+      nodes: safeParseJson(conversation.nodes),
       truncateIndex: conversation.truncate_index,
-      suggestions: parseJsonOrRaw(conversation.suggestions),
+      suggestions: safeParseJson(conversation.suggestions),
     })
 
     let extensions: Record<string, unknown> | undefined = {
       truncateIndex: conversation.truncate_index,
-      suggestions: parseJsonOrRaw(conversation.suggestions),
-      legacyNodesField: parseJsonOrRaw(conversation.nodes),
+      suggestions: safeParseJson(conversation.suggestions),
+      legacyNodesField: safeParseJson(conversation.nodes),
     }
 
     if (Object.keys(passthrough).length > 0) {

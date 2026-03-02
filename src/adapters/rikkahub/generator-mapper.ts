@@ -18,8 +18,9 @@ import type {
   CorePart,
   CoreProvider,
 } from '../../core/schema/core.types.ts'
-import { attachTransportExtensions, mergeWithPlatformPassthrough } from '../../core/extensions/passthrough.ts'
+import { attachTransportExtensions, mergeWithPlatformPassthrough, toNonNegativeInt } from '../../core/extensions/passthrough.ts'
 import { toEpochMillis } from '../../core/normalize/time.ts'
+import { isRecord } from '../../core/util.ts'
 
 const DEFAULT_ASSISTANT_ID = '0950e2dc-9bd5-4801-afa3-aa887aa36b4e'
 const DEFAULT_AUTO_MODEL_ID = 'b7055fb4-39f9-4042-a88a-0d80ed76cf08'
@@ -49,10 +50,6 @@ export type RikkahubExportPayload = {
   settings: Record<string, unknown>
   conversations: RikkahubConversationInsert[]
   nodes: RikkahubMessageNodeInsert[]
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function isUuid(value: unknown): value is string {
@@ -87,9 +84,6 @@ class StableUuidRegistry {
 }
 
 /**
- * Convert ISO/epoch-like input to Kotlin LocalDateTime text expected by UI payload.
- */
-/**
  * Convert a timestamp to a Kotlin `LocalDateTime` string (no trailing `Z`).
  *
  * Rikkahub's Android Room database stores message timestamps as
@@ -120,15 +114,6 @@ function safeJsonStringify(value: unknown): string {
   } catch {
     return String(value)
   }
-}
-
-/** Return a guaranteed non-negative integer, or `undefined` for non-finite inputs. */
-function toNonNegativeInt(value: unknown): number | undefined {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return undefined
-  }
-
-  return Math.max(0, Math.round(value))
 }
 
 /**

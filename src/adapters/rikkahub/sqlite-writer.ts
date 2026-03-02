@@ -1,30 +1,6 @@
 import fs from 'node:fs'
-import { createRequire } from 'node:module'
+import { DatabaseSync } from 'node:sqlite'
 import type { RikkahubConversationInsert, RikkahubMessageNodeInsert } from './generator-mapper.ts'
-
-const require = createRequire(import.meta.url)
-
-type DatabaseSyncInstance = {
-  exec(sql: string): void
-  prepare(sql: string): {
-    run(...args: unknown[]): void
-  }
-  close(): void
-}
-
-type DatabaseSyncCtor = new (path: string) => DatabaseSyncInstance
-
-/**
- * Dynamically require `node:sqlite` through a CommonJS shim.
- *
- * `DatabaseSync` is only available in Node.js >= 22.5.  Using
- * `createRequire` keeps the ESM module loadable on older runtimes and
- * environments where `node:sqlite` is not available.
- */
-function getDatabaseSync(): DatabaseSyncCtor {
-  const sqliteModule = require('node:sqlite') as { DatabaseSync: DatabaseSyncCtor }
-  return sqliteModule.DatabaseSync
-}
 
 /**
  * Room v16 schema aligned with `references/rikkahub`:
@@ -122,7 +98,6 @@ export function writeRikkahubSqliteSnapshot(params: {
     fs.rmSync(dbPath, { force: true })
   }
 
-  const DatabaseSync = getDatabaseSync()
   const db = new DatabaseSync(dbPath)
 
   try {
