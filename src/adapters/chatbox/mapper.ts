@@ -1,3 +1,9 @@
+/**
+ * Chatbox ↔ Core Mapper
+ *
+ * Converts between Chatbox-native backup shapes and the universal Core schema.
+ * Both directions are handled here so the data model stays co-located.
+ */
 import type {
   CoreBranch,
   CoreBranchPoint,
@@ -17,6 +23,7 @@ import { normalizeProviderType } from '../../core/mapping/provider-map.ts'
 import { normalizeRole } from '../../core/normalize/role.ts'
 import { toIsoUtc, toEpochMillis } from '../../core/normalize/time.ts'
 
+/** Return a copy of `value` with all `undefined` entries removed. */
 function compactObject<T extends Record<string, unknown>>(value: T): T {
   const output: Record<string, unknown> = {}
   for (const [key, current] of Object.entries(value)) {
@@ -27,10 +34,16 @@ function compactObject<T extends Record<string, unknown>>(value: T): T {
   return output as T
 }
 
+/** Return true when `value` is a plain object (not null, not an array). */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+/**
+ * Return an object containing only the keys of `record` that are NOT in `keepKeys`.
+ * Returns `undefined` when nothing is left (all keys were known).
+ * Used to collect unknown fields into `extensions` for passthrough preservation.
+ */
 function extractUnknownFields(record: Record<string, unknown>, keepKeys: string[]): Record<string, unknown> | undefined {
   const set = new Set(keepKeys)
   const unknownEntries = Object.entries(record).filter(([key]) => !set.has(key))
@@ -40,6 +53,10 @@ function extractUnknownFields(record: Record<string, unknown>, keepKeys: string[
   return Object.fromEntries(unknownEntries)
 }
 
+/**
+ * Clamp `value` to a valid 0-based index in an array of length `max`.
+ * Non-finite inputs default to 0.
+ */
 function clampIndex(value: number, max: number): number {
   if (!Number.isFinite(value)) {
     return 0

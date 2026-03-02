@@ -23,6 +23,8 @@
     "zod": "^4.1.11"
   },
   "devDependencies": {
-    "@types/node": "^25.3.3"
+    "@types/archiver": "^7.0.0",
+    "@types/node": "^25.3.3",
+    "@types/unzipper": "^0.10.11"
   }
 }

@@ -53,12 +53,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Deep clone a value via JSON serialization.
- *
- * @param value - Value to clone
- * @returns Deep cloned copy
+ * Fast recursive deep clone instance (rfdc).
+ * Used instead of JSON parse/stringify to avoid losing non-JSON-safe values (e.g. Infinity, undefined).
  */
 const cloneValue = rfdc()
+
+/**
+ * Array merge strategy for deepmerge: source array always wins, target is discarded.
+ * Prevents unexpected array concatenation when merging passthrough into a base object.
+ */
 const overwriteMerge = (_target: unknown[], source: unknown[]): unknown[] => source
 
 function deepClone<T>(value: T): T {

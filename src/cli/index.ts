@@ -15,6 +15,10 @@ import { runInspectCommand } from './commands/inspect.ts'
 
 const platforms: SourcePlatform[] = ['chatbox', 'cherry', 'rikkahub']
 
+/**
+ * Validate and coerce a CLI string value to a `SourcePlatform` literal.
+ * Throws a descriptive `Error` when the value is not recognized.
+ */
 function parsePlatform(value: string, flagName: string): SourcePlatform {
   if (platforms.includes(value as SourcePlatform)) {
     return value as SourcePlatform
@@ -23,6 +27,10 @@ function parsePlatform(value: string, flagName: string): SourcePlatform {
   throw new Error(`Invalid ${flagName} value: ${value}. Expected one of chatbox|cherry|rikkahub`)
 }
 
+/**
+ * Parse a CLI string as a non-negative finite number.
+ * Throws when the value is not a valid number or is negative.
+ */
 function parseNonNegativeNumber(value: string, flagName: string): number {
   const parsed = Number(value)
   if (!Number.isFinite(parsed) || parsed < 0) {
@@ -31,6 +39,13 @@ function parseNonNegativeNumber(value: string, flagName: string): number {
   return parsed
 }
 
+/**
+ * Parse a CLI flag that is optionally boolean-ish.
+ *
+ * When `value` is `undefined` (flag present without argument), returns `true`.
+ * Accepts `1/true/yes` and `0/false/no` as case-insensitive strings.
+ * Throws when the value is an unrecognized string.
+ */
 function parseBooleanish(value: string | undefined, flagName: string): boolean {
   if (value === undefined) {
     return true

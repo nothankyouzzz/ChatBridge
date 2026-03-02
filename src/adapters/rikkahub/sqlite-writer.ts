@@ -14,6 +14,13 @@ type DatabaseSyncInstance = {
 
 type DatabaseSyncCtor = new (path: string) => DatabaseSyncInstance
 
+/**
+ * Dynamically require `node:sqlite` through a CommonJS shim.
+ *
+ * `DatabaseSync` is only available in Node.js >= 22.5.  Using
+ * `createRequire` keeps the ESM module loadable on older runtimes and
+ * environments where `node:sqlite` is not available.
+ */
 function getDatabaseSync(): DatabaseSyncCtor {
   const sqliteModule = require('node:sqlite') as { DatabaseSync: DatabaseSyncCtor }
   return sqliteModule.DatabaseSync
@@ -133,6 +140,8 @@ export function writeRikkahubSqliteSnapshot(params: {
        VALUES (?, ?, ?, ?, ?)`
     )
 
+    // Use IMMEDIATE to acquire a write lock upfront and avoid deadlocks
+    // when the caller is writing a large number of rows.
     db.exec('BEGIN IMMEDIATE TRANSACTION')
 
     try {
@@ -156,6 +165,7 @@ export function writeRikkahubSqliteSnapshot(params: {
 
       db.exec('COMMIT')
     } catch (error) {
+      // Roll back on any failure to leave the DB in a clean state.
       db.exec('ROLLBACK')
       throw error
     }

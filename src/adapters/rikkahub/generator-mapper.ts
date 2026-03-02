@@ -1,3 +1,14 @@
+/**
+ * Rikkahub Export Payload Builder
+ *
+ * Maps CoreBundle data into the three artefacts written by the Rikkahub generator:
+ *  1. `settings.json`  – provider list, assistant definitions, and global config.
+ *  2. `ConversationEntity` rows  – one row per conversation (Room SQLite table).
+ *  3. `message_node` rows  – one row per message slot (branch-aware).
+ *
+ * ID stability: all source IDs are run through `StableUuidRegistry` so that a
+ * given source ID always maps to the same Rikkahub UUID across re-exports.
+ */
 import path from 'node:path'
 import { v5 as uuidv5, validate as uuidValidate } from 'uuid'
 import type {
@@ -52,6 +63,13 @@ function toDeterministicUuid(seed: string): string {
   return uuidv5(seed, CHATBRIDGE_UUID_NAMESPACE)
 }
 
+/**
+ * Deterministically stable UUID registry.
+ *
+ * Maps (kind, sourceId) pairs to UUIDs so that re-exporting the same CoreBundle
+ * always produces the same SQLite row IDs. Already-valid UUIDs are preserved;
+ * non-UUID strings are hashed via uuidv5 into the ChatBridge namespace.
+ */
 class StableUuidRegistry {
   private readonly cache = new Map<string, string>()
 
@@ -71,16 +89,31 @@ class StableUuidRegistry {
 /**
  * Convert ISO/epoch-like input to Kotlin LocalDateTime text expected by UI payload.
  */
+/**
+ * Convert a timestamp to a Kotlin `LocalDateTime` string (no trailing `Z`).
+ *
+ * Rikkahub's Android Room database stores message timestamps as
+ * `LocalDateTime` text (e.g. `"2026-03-02T10:30:00.000"`), which differs
+ * from the ISO 8601 instant format that ChatBridge uses internally.
+ *
+ * @param input - Any timestamp value accepted by `toEpochMillis`
+ * @param fallbackMillis - Used when `input` cannot be parsed
+ */
 function toKotlinLocalDateTime(input: unknown, fallbackMillis: number): string {
   const millis = toEpochMillis(input) ?? fallbackMillis
   return new Date(millis).toISOString().replace(/Z$/, '')
 }
 
+/** Convert timestamp to a standard ISO instant string (`Z`-suffixed). */
 function toIsoInstant(input: unknown, fallbackMillis: number): string {
   const millis = toEpochMillis(input) ?? fallbackMillis
   return new Date(millis).toISOString()
 }
 
+/**
+ * JSON-serialize a value without throwing.
+ * Falls back to `String(value)` for non-serializable inputs (circular refs, etc.).
+ */
 function safeJsonStringify(value: unknown): string {
   try {
     return JSON.stringify(value)
@@ -89,6 +122,7 @@ function safeJsonStringify(value: unknown): string {
   }
 }
 
+/** Return a guaranteed non-negative integer, or `undefined` for non-finite inputs. */
 function toNonNegativeInt(value: unknown): number | undefined {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return undefined
@@ -97,6 +131,10 @@ function toNonNegativeInt(value: unknown): number | undefined {
   return Math.max(0, Math.round(value))
 }
 
+/**
+ * Map a Core model type string to the three Rikkahub model categories.
+ * Defaults to `'CHAT'` for unrecognized values.
+ */
 function mapCoreModelTypeToRikkahub(value: unknown): 'CHAT' | 'IMAGE' | 'EMBEDDING' {
   if (typeof value !== 'string') {
     return 'CHAT'
@@ -114,6 +152,10 @@ function mapCoreModelTypeToRikkahub(value: unknown): 'CHAT' | 'IMAGE' | 'EMBEDDI
   return 'CHAT'
 }
 
+/**
+ * Map a Core provider type to the three Rikkahub provider categories.
+ * Rikkahub names the OpenAI-compatible type `'openai'` and Google `'google'`.
+ */
 function mapCoreProviderTypeToRikkahub(value: unknown): 'openai' | 'google' | 'claude' {
   if (value === 'gemini') {
     return 'google'
@@ -126,6 +168,7 @@ function mapCoreProviderTypeToRikkahub(value: unknown): 'openai' | 'google' | 'c
   return 'openai'
 }
 
+/** Return `value` when it is an array, otherwise return `[]`. */
 function ensureArray<T>(value: T[] | undefined): T[] {
   return Array.isArray(value) ? value : []
 }
@@ -227,6 +270,16 @@ function mapToolResultToOutputParts(result: unknown, baseMillis: number): Record
   return [{ type: 'text', text: safeJsonStringify(result) }]
 }
 
+/**
+ * Map Core `parts[]` to Rikkahub's `message_node.messages[].parts` array.
+ *
+ * Tool handling:
+ * - Pair each `tool_call` with its matching `tool_result` (matched by `callId`
+ *   first, then `toolName`) and emit a single Rikkahub `tool` part.
+ * - Orphan `tool_result` parts (no preceding call) are emitted as standalone
+ *   `tool` parts with an empty `input`.
+ * - The consumed-results set prevents double-emitting paired results.
+ */
 function mapCorePartsToRikkahubParts(parts: CorePart[], baseMillis: number): Record<string, unknown>[] {
   const output: Record<string, unknown>[] = []
   const consumedToolResults = new Set<number>()
@@ -297,6 +350,10 @@ function mapCorePartsToRikkahubParts(parts: CorePart[], baseMillis: number): Rec
   return output.length > 0 ? output : [{ type: 'text', text: '' }]
 }
 
+/**
+ * Convert Core url-citation annotations to Rikkahub's `url_citation` annotation list.
+ * Non-object annotations and those missing both `url` and `title` are dropped.
+ */
 function mapCoreAnnotationsToRikkahub(annotations: unknown[] | undefined): Record<string, unknown>[] {
   if (!Array.isArray(annotations)) {
     return []
@@ -324,6 +381,10 @@ function mapCoreAnnotationsToRikkahub(annotations: unknown[] | undefined): Recor
   return output
 }
 
+/**
+ * Map Core role to the four roles Rikkahub accepts.
+ * `unknown` is coerced to `assistant` (closest semantic match).
+ */
 function mapCoreRoleToRikkahub(value: CoreMessage['role']): 'system' | 'user' | 'assistant' | 'tool' {
   if (value === 'system' || value === 'user' || value === 'assistant' || value === 'tool') {
     return value
@@ -341,6 +402,12 @@ function providerModelKey(providerSourceId: string, modelSourceId: string): stri
   return `${providerSourceId}::${modelSourceId}`
 }
 
+/**
+ * Build a map of (providerId -> Set<modelId>) from message-level model references.
+ *
+ * Used to synthesize model entries in `settings.json` for providers that have
+ * messages referencing models not declared in `CoreBundle.providers`.
+ */
 function buildMessageModelRefs(bundle: CoreBundle): Map<string, Set<string>> {
   const refs = new Map<string, Set<string>>()
 
@@ -363,6 +430,14 @@ function buildMessageModelRefs(bundle: CoreBundle): Map<string, Set<string>> {
   return refs
 }
 
+/**
+ * Resolve the final Rikkahub `modelId` UUID for a message.
+ *
+ * Lookup order:
+ *  1. Exact (providerId, modelId) pair registered from provider list.
+ *  2. Any provider that registered the same modelId string.
+ *  3. Deterministic fallback UUID derived from the combined key.
+ */
 function resolveMessageModelUuid(
   message: CoreMessage,
   registry: StableUuidRegistry,
@@ -486,6 +561,12 @@ function buildSettingsProviderFromCore(
   return mergeWithPlatformPassthrough(providerBase, provider.extensions, 'rikkahub', preservePrivateState)
 }
 
+/**
+ * Pick the first available model UUID from the generated settings provider list.
+ *
+ * Used as the default model for assistants and various settings fields that
+ * require a `chatModelId`.
+ */
 function pickPrimaryModelId(settingsProviders: Record<string, unknown>[]): string {
   for (const provider of settingsProviders) {
     if (!isRecord(provider)) {
@@ -502,6 +583,12 @@ function pickPrimaryModelId(settingsProviders: Record<string, unknown>[]): strin
   return DEFAULT_AUTO_MODEL_ID
 }
 
+/**
+ * Build the `assistants` array for `settings.json`.
+ *
+ * One assistant entry is emitted per unique `assistantId` seen across conversations.
+ * `primaryModelId` is assigned as the default chat model for all assistants.
+ */
 function buildSettingsAssistants(
   assistantSourceIds: string[],
   assistantUuidBySourceId: Map<string, string>,

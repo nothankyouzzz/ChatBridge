@@ -3,6 +3,13 @@ import type { RikkahubConversationRow, RikkahubMessageNodeRow } from './mapper.t
 
 const require = createRequire(import.meta.url)
 
+/**
+ * Dynamically require `node:sqlite` through a CommonJS shim.
+ *
+ * `DatabaseSync` is only available in Node.js >= 22.5, and `node:sqlite` is an
+ * optional built-in. Using `createRequire` lets ESM code reach it without a
+ * static import that would break older runtimes at module-load time.
+ */
 function getDatabaseSync() {
   const sqliteModule = require('node:sqlite') as { DatabaseSync: new (path: string) => any }
   return sqliteModule.DatabaseSync

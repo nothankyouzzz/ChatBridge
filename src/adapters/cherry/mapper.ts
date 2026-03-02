@@ -1,3 +1,10 @@
+/**
+ * Cherry Studio ↔ Core Mapper
+ *
+ * Converts between Cherry Studio's backup layout (localStorage Redux slices +
+ * IndexedDB tables) and the universal Core schema. Both directions are handled
+ * here to keep the data model co-located.
+ */
 import type {
   CoreConversation,
   CoreMessage,
@@ -14,6 +21,7 @@ import { normalizeProviderType } from '../../core/mapping/provider-map.ts'
 import { normalizeRole } from '../../core/normalize/role.ts'
 import { toIsoUtc, toEpochMillis } from '../../core/normalize/time.ts'
 
+/** Return `value` as a plain object, or `undefined` if it is null/array/primitive. */
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return value as Record<string, unknown>
@@ -21,6 +29,7 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return undefined
 }
 
+/** Return a copy of `value` with all `undefined` entries removed. */
 function compactObject<T extends Record<string, unknown>>(value: T): T {
   const output: Record<string, unknown> = {}
   for (const [key, current] of Object.entries(value)) {
@@ -31,6 +40,13 @@ function compactObject<T extends Record<string, unknown>>(value: T): T {
   return output as T
 }
 
+/**
+ * Try to JSON-parse a string slice.
+ *
+ * Cherry's `persist:cherry-studio` Redux payload stores each top-level slice
+ * as a JSON-stringified string. This helper unwraps one such slice.
+ * Non-string values are returned as-is (already an object or number, etc.).
+ */
 function parsePersistSlice(value: unknown): unknown {
   if (typeof value !== 'string') {
     return value
@@ -494,6 +510,13 @@ export function mapCherryTopicsToCoreConversations(
     .filter((item): item is CoreConversation => Boolean(item))
 }
 
+/**
+ * Coerce Core role to the three roles Cherry messages accept.
+ *
+ * Cherry only distinguishes `user`, `assistant`, and `system`.
+ * Both `tool` and `unknown` are collapsed to `assistant` because Cherry
+ * has no separate tool-role concept.
+ */
 function mapCoreRoleToCherryRole(role: CoreMessage['role']): 'user' | 'assistant' | 'system' {
   if (role === 'user' || role === 'assistant' || role === 'system') {
     return role

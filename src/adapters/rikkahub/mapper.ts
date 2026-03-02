@@ -1,3 +1,9 @@
+/**
+ * Rikkahub ↔ Core Mapper
+ *
+ * Converts between Rikkahub's Room database rows / settings JSON and the
+ * universal Core schema. Both parse and generate directions are handled here.
+ */
 import type {
   CoreBranch,
   CoreBranchPoint,
@@ -12,6 +18,7 @@ import { normalizeProviderType } from '../../core/mapping/provider-map.ts'
 import { normalizeRole } from '../../core/normalize/role.ts'
 import { toIsoUtc } from '../../core/normalize/time.ts'
 
+/** Return `value` as a plain object, or `undefined` if it is null/array/primitive. */
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return value as Record<string, unknown>
@@ -19,6 +26,7 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return undefined
 }
 
+/** Return a copy of `value` with all `undefined` entries removed. */
 function compactObject<T extends Record<string, unknown>>(value: T): T {
   const output: Record<string, unknown> = {}
   for (const [key, current] of Object.entries(value)) {
@@ -29,6 +37,11 @@ function compactObject<T extends Record<string, unknown>>(value: T): T {
   return output as T
 }
 
+/**
+ * Try to JSON-parse a string value.
+ * Returns the original value unchanged when the input is not a string
+ * or when parsing fails (e.g. already a parsed object stored in the column).
+ */
 function parseJsonOrRaw(value: unknown): unknown {
   if (typeof value !== 'string') {
     return value
@@ -41,6 +54,12 @@ function parseJsonOrRaw(value: unknown): unknown {
   }
 }
 
+/**
+ * Deserialize the `input` field from a Rikkahub tool-call node.
+ *
+ * Rikkahub serializes tool arguments as a JSON string in the database.
+ * If `input` is already an object (e.g. during a roundtrip) it is returned as-is.
+ */
 function mapToolInput(input: unknown): unknown {
   if (typeof input !== 'string') {
     return input

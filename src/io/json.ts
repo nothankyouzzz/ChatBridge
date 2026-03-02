@@ -13,6 +13,15 @@ import { readText, writeText } from './fs.ts'
 
 const parser = (streamJson as unknown as { parser: (options?: Record<string, unknown>) => NodeJS.ReadWriteStream }).parser
 
+/**
+ * Read and parse a JSON file using a token-stream pipeline.
+ *
+ * Suitable for files too large to comfortably hold in a single string.
+ * Uses `stream-json` tokenizer + `Assembler` to build the value incrementally.
+ *
+ * @param filePath - Path to the file to read
+ * @returns Fully assembled parsed value
+ */
 export async function readJsonFromStream<T = unknown>(filePath: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const source = createReadStream(filePath, { encoding: 'utf8' })
