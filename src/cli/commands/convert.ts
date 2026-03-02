@@ -22,7 +22,6 @@ import { generateForTarget, parseWithSource } from '../../adapters/index.ts'
  * @param params.includeSecrets - Include API keys/secrets in output
  * @param params.preservePrivateState - Preserve platform extensions and transport extension channel
  * @param params.streamThresholdMb - Enable threshold-based stream read path for large files
- * @param params.assetMode - Asset handling mode (inline/external)
  */
 export async function runConvertCommand(params: {
   inputPath: string
@@ -32,7 +31,6 @@ export async function runConvertCommand(params: {
   includeSecrets?: boolean
   preservePrivateState?: boolean
   streamThresholdMb?: number
-  assetMode?: 'inline' | 'external'
 }): Promise<void> {
   // Step 1: Parse source backup to Core format
   const { source, bundle } = await parseWithSource(
@@ -42,7 +40,6 @@ export async function runConvertCommand(params: {
       includeSecrets: params.includeSecrets,
       preservePrivateState: params.preservePrivateState,
       streamThresholdMb: params.streamThresholdMb,
-      assetMode: params.assetMode,
     }
   )
 
@@ -54,8 +51,6 @@ export async function runConvertCommand(params: {
     {
       includeSecrets: params.includeSecrets,
       preservePrivateState: params.preservePrivateState,
-      streamThresholdMb: params.streamThresholdMb,
-      assetMode: params.assetMode,
     }
   )
 
@@ -70,7 +65,6 @@ export async function runConvertCommand(params: {
       includeSecrets: params.includeSecrets === true,
       preservePrivateState: params.preservePrivateState !== false,
       streamThresholdMb: params.streamThresholdMb,
-      assetMode: params.assetMode ?? 'inline',
     },
   }
 

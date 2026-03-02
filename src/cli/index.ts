@@ -119,7 +119,6 @@ cli
       parseNonNegativeNumber(value, '--stream-threshold-mb')
     )
   )
-  .addOption(new Option('--asset-mode <mode>', 'Asset mode: inline|external').choices(['inline', 'external']).default('inline'))
   .action(async (inputPath: string, options: {
     to: SourcePlatform
     out: string
@@ -127,7 +126,6 @@ cli
     includeSecrets?: boolean
     preservePrivateState?: boolean
     streamThresholdMb?: number
-    assetMode?: 'inline' | 'external'
   }) => {
     await runConvertCommand({
       inputPath,
@@ -137,7 +135,6 @@ cli
       includeSecrets: options.includeSecrets === true,
       preservePrivateState: options.preservePrivateState ?? true,
       streamThresholdMb: options.streamThresholdMb,
-      assetMode: options.assetMode ?? 'inline',
     })
   })
 
