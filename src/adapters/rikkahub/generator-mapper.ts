@@ -11,14 +11,12 @@
  */
 import path from 'node:path'
 import { v5 as uuidv5, validate as uuidValidate } from 'uuid'
-import type {
-  CoreBundle,
-  CoreConversation,
-  CoreMessage,
-  CorePart,
-  CoreProvider,
-} from '../../core/schema/core.types.ts'
-import { attachTransportExtensions, mergeWithPlatformPassthrough, toNonNegativeInt } from '../../core/extensions/passthrough.ts'
+import type { CoreBundle, CoreConversation, CoreMessage, CorePart, CoreProvider } from '../../core/schema/core.types.ts'
+import {
+  attachTransportExtensions,
+  mergeWithPlatformPassthrough,
+  toNonNegativeInt,
+} from '../../core/extensions/passthrough.ts'
 import { toEpochMillis } from '../../core/normalize/time.ts'
 import { isRecord } from '../../core/util.ts'
 
@@ -99,7 +97,7 @@ function toKotlinLocalDateTime(input: unknown, fallbackMillis: number): string {
 }
 
 /** Convert timestamp to a standard ISO instant string (`Z`-suffixed). */
-function toIsoInstant(input: unknown, fallbackMillis: number): string {
+function _toIsoInstant(input: unknown, fallbackMillis: number): string {
   const millis = toEpochMillis(input) ?? fallbackMillis
   return new Date(millis).toISOString()
 }
@@ -181,7 +179,7 @@ function normalizeConversationTruncateIndex(conversation: CoreConversation): num
 
 function mapCorePartToRikkahubSimplePart(
   part: Exclude<CorePart, { type: 'tool_call' } | { type: 'tool_result' }>,
-  baseMillis: number
+  baseMillis: number,
 ): Record<string, unknown>[] {
   switch (part.type) {
     case 'text':
@@ -233,8 +231,8 @@ function mapToolResultToOutputParts(result: unknown, baseMillis: number): Record
         output.push(
           ...mapCorePartToRikkahubSimplePart(
             item as Exclude<CorePart, { type: 'tool_call' } | { type: 'tool_result' }>,
-            baseMillis
-          )
+            baseMillis,
+          ),
         )
       } else {
         output.push({ type: 'text', text: safeJsonStringify(item) })
@@ -327,8 +325,8 @@ function mapCorePartsToRikkahubParts(parts: CorePart[], baseMillis: number): Rec
     output.push(
       ...mapCorePartToRikkahubSimplePart(
         part as Exclude<CorePart, { type: 'tool_call' } | { type: 'tool_result' }>,
-        baseMillis
-      )
+        baseMillis,
+      ),
     )
   }
 
@@ -426,7 +424,7 @@ function buildMessageModelRefs(bundle: CoreBundle): Map<string, Set<string>> {
 function resolveMessageModelUuid(
   message: CoreMessage,
   registry: StableUuidRegistry,
-  modelRegistry: MessageModelRegistry
+  modelRegistry: MessageModelRegistry,
 ): string | undefined {
   const model = message.model
   if (!model) {
@@ -463,7 +461,7 @@ function buildSettingsProviderFromCore(
   includeSecrets: boolean,
   preservePrivateState: boolean,
   registry: StableUuidRegistry,
-  modelRegistry: MessageModelRegistry
+  modelRegistry: MessageModelRegistry,
 ): Record<string, unknown> {
   const providerSourceId = provider.id
   const providerType = mapCoreProviderTypeToRikkahub(provider.type)
@@ -513,7 +511,7 @@ function buildSettingsProviderFromCore(
     const providerBase = {
       type: 'google',
       ...base,
-      apiKey: includeSecrets ? provider.apiKey ?? '' : '',
+      apiKey: includeSecrets ? (provider.apiKey ?? '') : '',
       baseUrl: provider.endpoint ?? 'https://generativelanguage.googleapis.com/v1beta',
       vertexAI: false,
       privateKey: '',
@@ -528,7 +526,7 @@ function buildSettingsProviderFromCore(
     const providerBase = {
       type: 'claude',
       ...base,
-      apiKey: includeSecrets ? provider.apiKey ?? '' : '',
+      apiKey: includeSecrets ? (provider.apiKey ?? '') : '',
       baseUrl: provider.endpoint ?? 'https://api.anthropic.com/v1',
       promptCaching: false,
     }
@@ -538,7 +536,7 @@ function buildSettingsProviderFromCore(
   const providerBase = {
     type: 'openai',
     ...base,
-    apiKey: includeSecrets ? provider.apiKey ?? '' : '',
+    apiKey: includeSecrets ? (provider.apiKey ?? '') : '',
     baseUrl: provider.endpoint ?? 'https://api.openai.com/v1',
     chatCompletionsPath: '/chat/completions',
     useResponseApi: false,
@@ -577,9 +575,9 @@ function pickPrimaryModelId(settingsProviders: Record<string, unknown>[]): strin
 function buildSettingsAssistants(
   assistantSourceIds: string[],
   assistantUuidBySourceId: Map<string, string>,
-  primaryModelId: string
+  primaryModelId: string,
 ): Record<string, unknown>[] {
-  return assistantSourceIds.map((sourceId, index) => {
+  return assistantSourceIds.map((sourceId, _index) => {
     const id = assistantUuidBySourceId.get(sourceId) ?? DEFAULT_ASSISTANT_ID
     const fallbackName = sourceId === 'default' ? 'Default Assistant' : sourceId
 
@@ -598,7 +596,7 @@ function buildSettingsAssistants(
 function buildMessageNodeVariants(
   conversation: CoreConversation,
   message: CoreMessage,
-  index: number
+  index: number,
 ): {
   nodeIdSeed: string
   variants: CoreMessage[]
@@ -617,7 +615,9 @@ function buildMessageNodeVariants(
 
     if (point.mode === 'slot') {
       return point.variants.some((variant) =>
-        Array.isArray(variant.messages) ? variant.messages.some((variantMessage) => variantMessage.id === message.id) : false
+        Array.isArray(variant.messages)
+          ? variant.messages.some((variantMessage) => variantMessage.id === message.id)
+          : false,
       )
     }
 
@@ -632,8 +632,8 @@ function buildMessageNodeVariants(
     }
 
     const relative = index - anchorIndex - 1
-    return point.variants.some((variant) =>
-      Array.isArray(variant.messages) && variant.messages[relative]?.id === message.id
+    return point.variants.some(
+      (variant) => Array.isArray(variant.messages) && variant.messages[relative]?.id === message.id,
     )
   })
 
@@ -688,9 +688,9 @@ function buildMessageNodeVariants(
           typeof branchPoint.selectedVariantIndex === 'number'
             ? Math.trunc(branchPoint.selectedVariantIndex)
             : selectedById,
-          0
+          0,
         ),
-        Math.max(deduped.length - 1, 0)
+        Math.max(deduped.length - 1, 0),
       )
 
       return {
@@ -750,7 +750,7 @@ function mapCoreMessageToRikkahub(
   message: CoreMessage,
   fallbackMillis: number,
   registry: StableUuidRegistry,
-  modelRegistry: MessageModelRegistry
+  modelRegistry: MessageModelRegistry,
 ): Record<string, unknown> {
   const createdAtLocal = toKotlinLocalDateTime(message.createdAt, fallbackMillis)
   const finishedAtLocal = message.finishedAt ? toKotlinLocalDateTime(message.finishedAt, fallbackMillis) : undefined
@@ -762,8 +762,7 @@ function mapCoreMessageToRikkahub(
         cachedTokens: toNonNegativeInt(message.usage.cachedTokens) ?? 0,
         totalTokens:
           toNonNegativeInt(message.usage.totalTokens) ??
-          (toNonNegativeInt(message.usage.promptTokens) ?? 0) +
-            (toNonNegativeInt(message.usage.completionTokens) ?? 0),
+          (toNonNegativeInt(message.usage.promptTokens) ?? 0) + (toNonNegativeInt(message.usage.completionTokens) ?? 0),
       }
     : undefined
 
@@ -804,7 +803,7 @@ export function buildRikkahubExportPayload(bundle: CoreBundle, includeSecrets: b
 export function buildRikkahubExportPayloadWithOptions(
   bundle: CoreBundle,
   includeSecrets: boolean,
-  preservePrivateState: boolean
+  preservePrivateState: boolean,
 ): RikkahubExportPayload {
   const registry = new StableUuidRegistry()
 
@@ -858,8 +857,8 @@ export function buildRikkahubExportPayloadWithOptions(
         includeSecrets,
         preservePrivateState,
         registry,
-        modelRegistry
-      )
+        modelRegistry,
+      ),
     )
   }
 
@@ -889,8 +888,8 @@ export function buildRikkahubExportPayloadWithOptions(
         includeSecrets,
         preservePrivateState,
         registry,
-        modelRegistry
-      )
+        modelRegistry,
+      ),
     )
   }
 
@@ -919,15 +918,8 @@ export function buildRikkahubExportPayloadWithOptions(
     lorebooks: [],
   }
   // Merge Rikkahub platform-private bundle state on top of deterministic base.
-  const mergedSettings = mergeWithPlatformPassthrough(
-      settingsBase,
-      bundle.extensions,
-      'rikkahub',
-      preservePrivateState
-  )
-  const settings = preservePrivateState
-    ? attachTransportExtensions(mergedSettings, bundle.extensions)
-    : mergedSettings
+  const mergedSettings = mergeWithPlatformPassthrough(settingsBase, bundle.extensions, 'rikkahub', preservePrivateState)
+  const settings = preservePrivateState ? attachTransportExtensions(mergedSettings, bundle.extensions) : mergedSettings
 
   const conversationRows: RikkahubConversationInsert[] = []
   const nodeRows: RikkahubMessageNodeInsert[] = []
@@ -975,7 +967,7 @@ export function buildRikkahubExportPayloadWithOptions(
       const fallbackMillis = toEpochMillis(message.createdAt) ?? createdAt
 
       const uiMessages = variants.map((variant) =>
-        mapCoreMessageToRikkahub(variant, fallbackMillis, registry, modelRegistry)
+        mapCoreMessageToRikkahub(variant, fallbackMillis, registry, modelRegistry),
       )
 
       const nodeId = registry.get('message-node', `${conversation.id}:${nodeIdSeed}:${nodeIndex}`)

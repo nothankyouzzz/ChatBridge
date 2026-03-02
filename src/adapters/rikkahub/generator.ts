@@ -1,9 +1,4 @@
-import type {
-  CoreBundle,
-  GenerateOptions,
-  GeneratedArtifact,
-  OutputTarget,
-} from '../../core/schema/core.types.ts'
+import type { CoreBundle, GenerateOptions, GeneratedArtifact, OutputTarget } from '../../core/schema/core.types.ts'
 import path from 'node:path'
 import { createTempDir, ensureDir, removeDir } from '../../io/fs.ts'
 import { writeJsonFile } from '../../io/json.ts'
@@ -36,7 +31,7 @@ export class RikkahubGenerator implements TargetGenerator {
   async generate(
     bundle: CoreBundle,
     output: OutputTarget,
-    options: GenerateOptions = {}
+    options: GenerateOptions = {},
   ): Promise<GeneratedArtifact[]> {
     const zipPath = resolveZipPath(output.path)
     const tempDir = await createTempDir('chatbridge-rikkahub-export-')
@@ -45,7 +40,7 @@ export class RikkahubGenerator implements TargetGenerator {
       const payload = buildRikkahubExportPayloadWithOptions(
         bundle,
         options.includeSecrets === true,
-        options.preservePrivateState !== false
+        options.preservePrivateState !== false,
       )
       const dbPath = path.join(tempDir, 'rikka_hub.db')
       const settingsPath = path.join(tempDir, 'settings.json')
@@ -69,7 +64,7 @@ export class RikkahubGenerator implements TargetGenerator {
       ]
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      throw new Error(`Failed to generate Rikkahub backup: ${message}`)
+      throw new Error(`Failed to generate Rikkahub backup: ${message}`, { cause: error })
     } finally {
       await removeDir(tempDir)
     }

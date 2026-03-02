@@ -102,12 +102,23 @@ export function mapRikkahubUiMessageToCore(rawMessage: unknown, includeSecrets: 
     ...Object.fromEntries(
       Object.entries(message).filter(
         ([key]) =>
-          !['id', 'role', 'parts', 'annotations', 'createdAt', 'finishedAt', 'modelId', 'usage', 'translation', '__chatbridge_extensions'].includes(key)
-      )
+          ![
+            'id',
+            'role',
+            'parts',
+            'annotations',
+            'createdAt',
+            'finishedAt',
+            'modelId',
+            'usage',
+            'translation',
+            '__chatbridge_extensions',
+          ].includes(key),
+      ),
     ),
   })
 
-  let extensions = compactObject({
+  let extensions: Record<string, unknown> = compactObject({
     ...(transportExtensions ?? {}),
     translation: message.translation,
   })
@@ -174,7 +185,7 @@ export function mapRikkahubProvidersToCore(settings: Record<string, unknown>, in
             .filter((item): item is NonNullable<typeof item> => Boolean(item))
         : []
 
-      let extensions = compactObject({
+      let extensions: Record<string, unknown> = compactObject({
         providerType: provider.type,
         rawProvider: compactObject({
           useResponseApi: provider.useResponseApi,
@@ -194,8 +205,19 @@ export function mapRikkahubProvidersToCore(settings: Record<string, unknown>, in
         ...Object.fromEntries(
           Object.entries(provider).filter(
             ([key]) =>
-              !['id', 'type', 'enabled', 'name', 'apiKey', 'accessToken', 'baseUrl', 'endpoint', 'models', '__chatbridge_extensions'].includes(key)
-          )
+              ![
+                'id',
+                'type',
+                'enabled',
+                'name',
+                'apiKey',
+                'accessToken',
+                'baseUrl',
+                'endpoint',
+                'models',
+                '__chatbridge_extensions',
+              ].includes(key),
+          ),
         ),
       })
       if (Object.keys(passthrough).length > 0) {
@@ -257,7 +279,7 @@ export type RikkahubMessageNodeRow = {
 export function mapRikkahubRowsToCoreConversations(
   conversationRows: RikkahubConversationRow[],
   nodeRows: RikkahubMessageNodeRow[],
-  includeSecrets: boolean = false
+  includeSecrets: boolean = false,
 ): CoreConversation[] {
   const nodeByConversation = new Map<string, RikkahubMessageNodeRow[]>()
 
