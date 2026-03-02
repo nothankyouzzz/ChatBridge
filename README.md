@@ -107,7 +107,7 @@ npm run convert -- large-backup.json \
   --stream-threshold-mb 100
 ```
 
-> Note: This improves large-file read behavior, but JSON is still fully materialized before `JSON.parse` in the current implementation.
+> Note: This switches to token-stream parsing for large JSON files. Parsed objects are still materialized in memory before adapter mapping.
 
 ---
 
@@ -162,7 +162,7 @@ ChatBridge/
 ├── src/
 │   ├── cli/              # Command-line interface
 │   │   ├── commands/     # inspect & convert commands
-│   │   └── args.ts       # Argument parser
+│   │   └── index.ts      # Commander-based CLI entry
 │   ├── adapters/         # Platform adapters
 │   │   ├── chatbox/      # Chatbox parser/generator
 │   │   ├── cherry/       # Cherry Studio parser/generator

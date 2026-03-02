@@ -43,7 +43,7 @@ npm run inspect -- <input> [--source chatbox|cherry|rikkahub] [--include-secrets
 | --- | --- | --- | --- |
 | `--source` | enum | auto-detect | Force parser source: `chatbox`, `cherry`, `rikkahub` |
 | `--include-secrets` | boolean | `false` | Allow parser to retain secret fields in Core passthrough. Summary output still does not print raw secrets. |
-| `--stream-threshold-mb` | number | disabled | Switch large JSON reads to threshold-based stream read path |
+| `--stream-threshold-mb` | number | disabled | Switch large JSON reads to threshold-based token-stream parse path |
 
 ### Examples
 
@@ -93,7 +93,7 @@ npm run convert -- <input> --to chatbox|cherry|rikkahub --out <output> [--from c
 | `--from` | enum | auto-detect | Force source parser |
 | `--include-secrets` | boolean | `false` | Include secret provider fields in generated artifacts |
 | `--preserve-private-state` | boolean | `true` | Preserve platform-private state via passthrough merge and transport extension channel |
-| `--stream-threshold-mb` | number | disabled | Switch large JSON reads to threshold-based stream read path |
+| `--stream-threshold-mb` | number | disabled | Switch large JSON reads to threshold-based token-stream parse path |
 | `--asset-mode` | enum | `inline` | `inline` or `external`. `external` is currently reserved (accepted but not materialized as a separate asset pipeline). |
 
 ### Examples
@@ -149,8 +149,8 @@ npm run convert -- ./huge-backup.json --to cherry --out ./output --stream-thresh
 
 ## ⚡ Performance Notes
 
-- `--stream-threshold-mb` switches to a streamed file read path for large JSON inputs.
-- Current implementation still materializes full JSON text before `JSON.parse`.
+- `--stream-threshold-mb` switches to a token-stream parse path for large JSON inputs.
+- Parsed JSON objects are still materialized in memory before adapter mapping.
 - Use `inspect` output (`potentialLargeDataUris`, `heapUsedMb`) to monitor heavy payloads.
 
 ---
