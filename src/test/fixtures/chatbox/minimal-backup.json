@@ -1,0 +1,66 @@
+{
+  "settings": {
+    "providers": {
+      "openai": {
+        "apiKey": "sk-test",
+        "apiHost": "https://api.openai.com/v1",
+        "models": [
+          {
+            "modelId": "gpt-4o-mini",
+            "type": "chat",
+            "nickname": "GPT-4o mini"
+          }
+        ]
+      }
+    }
+  },
+  "chat-sessions-list": [
+    {
+      "id": "session-1",
+      "name": "Sample Session",
+      "starred": true
+    }
+  ],
+  "session:session-1": {
+    "id": "session-1",
+    "name": "Sample Session",
+    "starred": true,
+    "messages": [
+      {
+        "id": "msg-1",
+        "role": "user",
+        "contentParts": [
+          {
+            "type": "text",
+            "text": "Hello"
+          }
+        ],
+        "timestamp": 1700000000000
+      },
+      {
+        "id": "msg-2",
+        "role": "assistant",
+        "aiProvider": "openai",
+        "model": "gpt-4o-mini",
+        "contentParts": [
+          {
+            "type": "reasoning",
+            "text": "thinking"
+          },
+          {
+            "type": "text",
+            "text": "Hi there"
+          }
+        ],
+        "usage": {
+          "inputTokens": 12,
+          "outputTokens": 34,
+          "totalTokens": 46
+        },
+        "timestamp": 1700000005000,
+        "updatedAt": 1700000006000
+      }
+    ]
+  },
+  "__exported_at": "2026-03-02T00:00:00.000Z"
+}
