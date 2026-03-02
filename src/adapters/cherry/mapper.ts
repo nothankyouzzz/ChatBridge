@@ -20,25 +20,7 @@ import {
 import { normalizeProviderType } from '../../core/mapping/provider-map.ts'
 import { normalizeRole } from '../../core/normalize/role.ts'
 import { toIsoUtc, toEpochMillis } from '../../core/normalize/time.ts'
-
-/** Return `value` as a plain object, or `undefined` if it is null/array/primitive. */
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as Record<string, unknown>
-  }
-  return undefined
-}
-
-/** Return a copy of `value` with all `undefined` entries removed. */
-function compactObject<T extends Record<string, unknown>>(value: T): T {
-  const output: Record<string, unknown> = {}
-  for (const [key, current] of Object.entries(value)) {
-    if (current !== undefined) {
-      output[key] = current
-    }
-  }
-  return output as T
-}
+import { asRecord, compactObject } from '../../core/util.ts'
 
 /**
  * Try to JSON-parse a string slice.
@@ -214,19 +196,12 @@ export function mapCherryBlockToCoreParts(rawBlock: unknown): CorePart[] {
 }
 
 /**
- * Backward-compatible wrapper without secret passthrough.
- */
-export function mapCherryMessageToCore(rawMessage: unknown, blockMap: Map<string, Record<string, unknown>>): CoreMessage {
-  return mapCherryMessageToCoreWithSecrets(rawMessage, blockMap, false)
-}
-
-/**
  * Map one Cherry message to Core message with passthrough capture.
  */
-export function mapCherryMessageToCoreWithSecrets(
+export function mapCherryMessageToCore(
   rawMessage: unknown,
   blockMap: Map<string, Record<string, unknown>>,
-  includeSecrets: boolean
+  includeSecrets: boolean = false
 ): CoreMessage {
   const message = asRecord(rawMessage)
   if (!message) {
@@ -455,7 +430,7 @@ export function mapCherryTopicsToCoreConversations(
 
       const meta = topicMetaMap.get(topic.id)
       const rawMessages = Array.isArray(topic.messages) ? topic.messages : []
-      const messages = rawMessages.map((message) => mapCherryMessageToCoreWithSecrets(message, blockMap, includeSecrets))
+      const messages = rawMessages.map((message) => mapCherryMessageToCore(message, blockMap, includeSecrets))
 
       const createdCandidates = messages
         .map((message) => toEpochMillis(message.createdAt))
@@ -521,7 +496,7 @@ function mapCoreRoleToCherryRole(role: CoreMessage['role']): 'user' | 'assistant
   if (role === 'user' || role === 'assistant' || role === 'system') {
     return role
   }
-  return role === 'tool' ? 'assistant' : 'assistant'
+  return 'assistant'
 }
 
 /**

@@ -22,22 +22,7 @@ import {
 import { normalizeProviderType } from '../../core/mapping/provider-map.ts'
 import { normalizeRole } from '../../core/normalize/role.ts'
 import { toIsoUtc, toEpochMillis } from '../../core/normalize/time.ts'
-
-/** Return a copy of `value` with all `undefined` entries removed. */
-function compactObject<T extends Record<string, unknown>>(value: T): T {
-  const output: Record<string, unknown> = {}
-  for (const [key, current] of Object.entries(value)) {
-    if (current !== undefined) {
-      output[key] = current
-    }
-  }
-  return output as T
-}
-
-/** Return true when `value` is a plain object (not null, not an array). */
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
+import { isRecord, compactObject } from '../../core/util.ts'
 
 /**
  * Return an object containing only the keys of `record` that are NOT in `keepKeys`.
@@ -527,7 +512,7 @@ export function mapChatboxProvidersToCore(rawProviders: unknown, includeSecrets:
       ...(transportExtensions ?? {}),
       ...(extractUnknownFields(provider, ['apiKey', 'apiHost', 'endpoint', 'models', '__chatbridge_extensions']) ?? {}),
     })
-    const passthrough = extractUnknownFields(provider, [])
+    const passthrough = extractUnknownFields(provider, ['apiKey', 'apiHost', 'endpoint', 'models', '__chatbridge_extensions'])
     if (passthrough) {
       extensions = capturePlatformPassthrough(extensions, 'chatbox', passthrough, includeSecrets)
     }

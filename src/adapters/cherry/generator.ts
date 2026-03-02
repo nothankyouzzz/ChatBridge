@@ -181,7 +181,6 @@ export class CherryGenerator implements TargetGenerator {
     if (zipPath) {
       const tempDir = await createTempDir('chatbridge-cherry-')
       try {
-        await fs.mkdir(path.join(tempDir, 'Data'), { recursive: true })
         await writeJsonFile(path.join(tempDir, 'data.json'), backupData)
         await ensureDir(path.dirname(zipPath))
         await createZipFromDirectory(tempDir, zipPath)
