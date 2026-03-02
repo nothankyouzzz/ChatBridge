@@ -10,6 +10,11 @@
   "scripts": {
     "inspect": "node --experimental-strip-types src/cli/index.ts inspect",
     "convert": "node --experimental-strip-types src/cli/index.ts convert",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "format": "prettier --write 'src/**/*.ts'",
+    "format:check": "prettier --check 'src/**/*.ts'",
+    "check": "npm run typecheck && npm run lint && npm run format:check",
     "test": "node --test --test-concurrency=1 --experimental-strip-types src/test/contract/*.spec.ts"
   },
   "dependencies": {
@@ -23,8 +28,13 @@
     "zod": "^4.1.11"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/archiver": "^7.0.0",
     "@types/node": "^25.3.3",
-    "@types/unzipper": "^0.10.11"
+    "@types/unzipper": "^0.10.11",
+    "eslint": "^10.0.2",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.1",
+    "typescript-eslint": "^8.56.1"
   }
 }
