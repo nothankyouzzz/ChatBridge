@@ -229,7 +229,6 @@ export interface ParseOptions {
   includeSecrets?: boolean
   preservePrivateState?: boolean
   streamThresholdMb?: number
-  assetMode?: 'inline' | 'external'
 }
 
 /**
@@ -239,8 +238,6 @@ export interface GenerateOptions {
   includeSecrets?: boolean
   now?: Date
   preservePrivateState?: boolean
-  streamThresholdMb?: number
-  assetMode?: 'inline' | 'external'
 }
 
 /** Parser input descriptor. */
