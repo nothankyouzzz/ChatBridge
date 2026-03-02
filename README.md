@@ -171,7 +171,8 @@ ChatBridge/
 │   │   ├── schema/       # CoreBundle type definitions
 │   │   ├── normalize/    # Data normalization
 │   │   ├── mapping/      # Provider/model mappings
-│   │   └── extensions/   # Extension utilities
+│   │   ├── extensions/   # Extension utilities
+│   │   └── util.ts       # Shared adapter primitives (isRecord, compactObject, …)
 │   ├── io/               # I/O utilities
 │   │   ├── json.ts       # Threshold-based JSON read path
 │   │   ├── sqlite.ts     # SQLite operations

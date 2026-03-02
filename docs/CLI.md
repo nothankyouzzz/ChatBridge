@@ -75,7 +75,7 @@ npm run inspect -- ./large-backup.json --stream-threshold-mb 50
 ### Synopsis
 
 ```bash
-npm run convert -- <input> --to chatbox|cherry|rikkahub --out <output> [--from chatbox|cherry|rikkahub] [--include-secrets] [--preserve-private-state <true|false>] [--stream-threshold-mb <n>] [--asset-mode inline|external]
+npm run convert -- <input> --to chatbox|cherry|rikkahub --out <output> [--from chatbox|cherry|rikkahub] [--include-secrets] [--preserve-private-state <true|false>] [--stream-threshold-mb <n>]
 ```
 
 ### Arguments
@@ -94,7 +94,6 @@ npm run convert -- <input> --to chatbox|cherry|rikkahub --out <output> [--from c
 | `--include-secrets` | boolean | `false` | Include secret provider fields in generated artifacts |
 | `--preserve-private-state` | boolean | `true` | Preserve platform-private state via passthrough merge and transport extension channel |
 | `--stream-threshold-mb` | number | disabled | Switch large JSON reads to threshold-based token-stream parse path |
-| `--asset-mode` | enum | `inline` | `inline` or `external`. `external` is currently reserved (accepted but not materialized as a separate asset pipeline). |
 
 ### Examples
 
@@ -112,7 +111,7 @@ npm run convert -- ./huge-backup.json --to cherry --out ./output --stream-thresh
 - `source`, `target`
 - `conversations`, `providers`
 - `artifacts[]` (`path`, `description`)
-- `options` (`includeSecrets`, `preservePrivateState`, `streamThresholdMb`, `assetMode`)
+- `options` (`includeSecrets`, `preservePrivateState`, `streamThresholdMb`)
 
 ---
 
