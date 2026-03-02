@@ -2,33 +2,52 @@
  * JSON File Operations
  *
  * Utilities for reading and writing JSON files with an optional
- * threshold-based stream read path for large files.
+ * threshold-based stream parse path for large files.
  */
 
 import { createReadStream } from 'node:fs'
 import fs from 'node:fs/promises'
+import streamJson from 'stream-json'
+import Assembler from 'stream-json/Assembler.js'
 import { readText, writeText } from './fs.ts'
+
+const parser = (streamJson as unknown as { parser: (options?: Record<string, unknown>) => NodeJS.ReadWriteStream }).parser
+
+export async function readJsonFromStream<T = unknown>(filePath: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const source = createReadStream(filePath, { encoding: 'utf8' })
+    const tokenStream = source.pipe(parser())
+    const assembler = Assembler.connectTo(tokenStream)
+
+    let settled = false
+    const settle = (error: unknown, value?: T): void => {
+      if (settled) {
+        return
+      }
+      settled = true
+      if (error) {
+        reject(error)
+        return
+      }
+      resolve(value as T)
+    }
+
+    source.on('error', (error) => settle(error))
+    tokenStream.on('error', (error) => settle(error))
+    tokenStream.on('end', () => settle(undefined, assembler.current as T))
+  })
+}
 
 /**
  * Read and parse JSON file.
  *
- * Automatically switches to stream-based file reading for files
+ * Automatically switches to token-stream parse for files
  * exceeding the threshold.
- *
- * Note: the current implementation still builds a full JSON string
- * before calling `JSON.parse`.
  *
  * @param filePath - Path to JSON file
  * @param options - Options object
- * @param options.streamThresholdBytes - File size threshold for stream read path (optional)
+ * @param options.streamThresholdBytes - File size threshold for stream parse path (optional)
  * @returns Parsed JSON object
- *
- * @example
- * // Normal read (small file)
- * const data = await readJsonFile('config.json')
- *
- * // Streaming read (large file)
- * const bigData = await readJsonFile('backup.json', { streamThresholdBytes: 10_000_000 })
  */
 export async function readJsonFile<T = unknown>(
   filePath: string,
@@ -39,15 +58,11 @@ export async function readJsonFile<T = unknown>(
   const stat = await fs.stat(filePath)
   const threshold = options.streamThresholdBytes
 
-  let raw: string
   if (typeof threshold === 'number' && threshold > 0 && stat.size >= threshold) {
-    // Use stream read path for large files
-    raw = await readTextStream(filePath)
-  } else {
-    // Use regular file read for small files
-    raw = await readText(filePath)
+    return readJsonFromStream<T>(filePath)
   }
 
+  const raw = await readText(filePath)
   return JSON.parse(raw) as T
 }
 
@@ -61,24 +76,4 @@ export async function readJsonFile<T = unknown>(
 export async function writeJsonFile(filePath: string, value: unknown, pretty = true): Promise<void> {
   const text = pretty ? `${JSON.stringify(value, null, 2)}\n` : JSON.stringify(value)
   await writeText(filePath, text)
-}
-
-/**
- * Read file as text using stream-based file reading.
- * Used internally by threshold path.
- *
- * @param filePath - Path to file
- * @returns File contents as string
- */
-async function readTextStream(filePath: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const stream = createReadStream(filePath, { encoding: 'utf8' })
-    let output = ''
-
-    stream.on('data', (chunk: string) => {
-      output += chunk
-    })
-    stream.on('error', reject)
-    stream.on('end', () => resolve(output))
-  })
 }

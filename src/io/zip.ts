@@ -1,120 +1,93 @@
 import { createWriteStream } from 'node:fs'
 import fs from 'node:fs/promises'
-import { spawn } from 'node:child_process'
 import path from 'node:path'
+import archiver from 'archiver'
+import unzipper from 'unzipper'
 
-async function runCommand(
-  command: string,
-  args: string[],
-  options: {
-    cwd?: string
-    encoding?: BufferEncoding
-  } = {}
-): Promise<string | Buffer> {
-  const encoding = options.encoding ?? 'utf8'
+type ZipEntry = {
+  path: string
+  type?: string
+  buffer(): Promise<Buffer>
+  stream(): NodeJS.ReadableStream
+}
 
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      cwd: options.cwd,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
+type ZipDirectory = {
+  files: ZipEntry[]
+}
 
-    const stdoutChunks: Buffer[] = []
-    const stderrChunks: Buffer[] = []
+function normalizeEntryName(value: string): string {
+  return value.replace(/\\/g, '/').replace(/^\.\//, '')
+}
 
-    child.stdout.on('data', (chunk: Buffer) => {
-      stdoutChunks.push(chunk)
-    })
+async function openZipDirectory(zipPath: string): Promise<ZipDirectory> {
+  return (await unzipper.Open.file(zipPath)) as ZipDirectory
+}
 
-    child.stderr.on('data', (chunk: Buffer) => {
-      stderrChunks.push(chunk)
-    })
-
-    child.on('error', (error) => {
-      reject(error)
-    })
-
-    child.on('close', (code) => {
-      if (code !== 0) {
-        const stderr = Buffer.concat(stderrChunks).toString('utf8').trim()
-        reject(new Error(`${command} ${args.join(' ')} failed with code ${code}: ${stderr}`))
-        return
-      }
-
-      const stdout = Buffer.concat(stdoutChunks)
-      if (encoding === 'buffer') {
-        resolve(stdout)
-        return
-      }
-
-      resolve(stdout.toString(encoding))
-    })
-  })
+async function getZipEntry(zipPath: string, entryName: string): Promise<ZipEntry> {
+  const directory = await openZipDirectory(zipPath)
+  const normalizedEntryName = normalizeEntryName(entryName)
+  const found = directory.files.find((entry) => normalizeEntryName(entry.path) === normalizedEntryName)
+  if (!found || found.type === 'Directory') {
+    throw new Error(`ZIP entry not found: ${entryName}`)
+  }
+  return found
 }
 
 export async function listZipEntries(zipPath: string): Promise<string[]> {
-  const raw = await runCommand('unzip', ['-Z1', zipPath], { encoding: 'utf8' })
-  return String(raw)
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
+  const directory = await openZipDirectory(zipPath)
+  return directory.files.map((entry) => normalizeEntryName(entry.path))
 }
 
 export async function readZipTextEntry(zipPath: string, entryName: string): Promise<string> {
-  const output = await runCommand('unzip', ['-p', zipPath, entryName], { encoding: 'utf8' })
-  return String(output)
+  const entry = await getZipEntry(zipPath, entryName)
+  const buffer = await entry.buffer()
+  return buffer.toString('utf8')
 }
 
 export async function readZipBinaryEntry(zipPath: string, entryName: string): Promise<Buffer> {
-  const output = await runCommand('unzip', ['-p', zipPath, entryName], { encoding: 'buffer' })
-  return Buffer.from(output)
+  const entry = await getZipEntry(zipPath, entryName)
+  return entry.buffer()
 }
 
 export async function extractZipEntryToFile(zipPath: string, entryName: string, outputPath: string): Promise<void> {
+  const entry = await getZipEntry(zipPath, entryName)
   await fs.mkdir(path.dirname(outputPath), { recursive: true })
 
   await new Promise<void>((resolve, reject) => {
-    const child = spawn('unzip', ['-p', zipPath, entryName], {
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
+    const readStream = entry.stream()
+    const writeStream = createWriteStream(outputPath)
 
-    const out = createWriteStream(outputPath)
-    const stderrChunks: Buffer[] = []
+    readStream.on('error', reject)
+    writeStream.on('error', reject)
+    writeStream.on('finish', () => resolve())
 
-    child.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk))
-    child.stdout.pipe(out)
-
-    let streamFinished = false
-    let childExited = false
-    let childExitCode = 0
-
-    const maybeResolve = () => {
-      if (streamFinished && childExited && childExitCode === 0) {
-        resolve()
-      }
-    }
-
-    out.on('error', reject)
-    out.on('finish', () => {
-      streamFinished = true
-      maybeResolve()
-    })
-    child.on('error', reject)
-
-    child.on('close', (code) => {
-      childExited = true
-      childExitCode = code ?? 0
-      if (code !== 0) {
-        reject(new Error(`Failed to extract ${entryName}: ${Buffer.concat(stderrChunks).toString('utf8')}`))
-        return
-      }
-      maybeResolve()
-    })
+    readStream.pipe(writeStream)
   })
 }
 
 export async function createZipFromDirectory(sourceDir: string, zipPath: string): Promise<void> {
   const resolvedZipPath = path.resolve(zipPath)
   await fs.mkdir(path.dirname(resolvedZipPath), { recursive: true })
-  await runCommand('zip', ['-rq', resolvedZipPath, '.'], { cwd: sourceDir, encoding: 'utf8' })
+
+  await new Promise<void>((resolve, reject) => {
+    const output = createWriteStream(resolvedZipPath)
+    const archive = archiver('zip', {
+      zlib: { level: 9 },
+    })
+
+    output.on('close', () => resolve())
+    output.on('error', reject)
+
+    archive.on('warning', (error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') {
+        return
+      }
+      reject(error)
+    })
+    archive.on('error', reject)
+
+    archive.pipe(output)
+    archive.directory(sourceDir, false)
+    void archive.finalize()
+  })
 }
