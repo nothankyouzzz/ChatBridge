@@ -6,6 +6,8 @@
  */
 
 import type { SourcePlatform } from '../schema/core.types.ts'
+import deepmerge from 'deepmerge'
+import rfdc from 'rfdc'
 
 /**
  * One lineage hop record for observability/debug.
@@ -56,13 +58,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * @param value - Value to clone
  * @returns Deep cloned copy
  */
+const cloneValue = rfdc()
+const overwriteMerge = (_target: unknown[], source: unknown[]): unknown[] => source
+
 function deepClone<T>(value: T): T {
   if (value === undefined || value === null) {
     return value
   }
 
   try {
-    return JSON.parse(JSON.stringify(value)) as T
+    return cloneValue(value) as T
   } catch {
     return value
   }
@@ -76,22 +81,10 @@ function deepClone<T>(value: T): T {
  * @returns Merged object
  */
 function deepMergeRecord(base: Record<string, unknown>, patch: Record<string, unknown>): Record<string, unknown> {
-  const output: Record<string, unknown> = { ...base }
-
-  for (const [key, patchValue] of Object.entries(patch)) {
-    const baseValue = output[key]
-
-    // Recursively merge nested objects
-    if (isRecord(baseValue) && isRecord(patchValue)) {
-      output[key] = deepMergeRecord(baseValue, patchValue)
-      continue
-    }
-
-    // Otherwise patch value wins
-    output[key] = patchValue
-  }
-
-  return output
+  return deepmerge(base, patch, {
+    arrayMerge: overwriteMerge,
+    isMergeableObject: (value: unknown): boolean => isRecord(value),
+  }) as Record<string, unknown>
 }
 
 /**
