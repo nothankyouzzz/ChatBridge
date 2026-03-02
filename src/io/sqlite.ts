@@ -5,7 +5,7 @@
  * Used for reading/writing Rikkahub's SQLite-based backups.
  */
 
-import { DatabaseSync } from 'node:sqlite'
+import { DatabaseSync, type SQLInputValue } from 'node:sqlite'
 
 /**
  * Execute a SELECT query and return all rows.
@@ -24,7 +24,11 @@ import { DatabaseSync } from 'node:sqlite'
  *   [18]
  * )
  */
-export function queryAll<T extends Record<string, unknown>>(dbPath: string, sql: string, params?: unknown[]): T[] {
+export function queryAll<T extends Record<string, unknown>>(
+  dbPath: string,
+  sql: string,
+  params?: SQLInputValue[],
+): T[] {
   const db = new DatabaseSync(dbPath)
 
   try {

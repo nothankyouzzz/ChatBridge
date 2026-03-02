@@ -7,11 +7,14 @@
 
 import { createReadStream } from 'node:fs'
 import fs from 'node:fs/promises'
+// @ts-expect-error stream-json has no type declarations
 import streamJson from 'stream-json'
+// @ts-expect-error stream-json has no type declarations
 import Assembler from 'stream-json/Assembler.js'
 import { readText, writeText } from './fs.ts'
 
-const parser = (streamJson as unknown as { parser: (options?: Record<string, unknown>) => NodeJS.ReadWriteStream }).parser
+const parser = (streamJson as unknown as { parser: (options?: Record<string, unknown>) => NodeJS.ReadWriteStream })
+  .parser
 
 /**
  * Read and parse a JSON file using a token-stream pipeline.
@@ -62,7 +65,7 @@ export async function readJsonFile<T = unknown>(
   filePath: string,
   options: {
     streamThresholdBytes?: number
-  } = {}
+  } = {},
 ): Promise<T> {
   const stat = await fs.stat(filePath)
   const threshold = options.streamThresholdBytes
