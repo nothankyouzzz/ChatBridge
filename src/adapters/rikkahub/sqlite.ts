@@ -10,7 +10,7 @@ export function readRikkahubConversations(dbPath: string): RikkahubConversationR
     return db
       .prepare(
         `SELECT id, assistant_id, title, nodes, create_at, update_at, truncate_index, suggestions, is_pinned
-         FROM ConversationEntity`
+         FROM ConversationEntity`,
       )
       .all() as RikkahubConversationRow[]
   } finally {
@@ -27,7 +27,7 @@ export function readRikkahubMessageNodes(dbPath: string): RikkahubMessageNodeRow
     return db
       .prepare(
         `SELECT id, conversation_id, node_index, messages, select_index
-         FROM message_node`
+         FROM message_node`,
       )
       .all() as RikkahubMessageNodeRow[]
   } finally {

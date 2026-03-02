@@ -171,7 +171,10 @@ test('extensions passthrough survives cherry -> chatbox -> cherry', async () => 
     const finalMessage = finalConversation.messages[0]
     const finalProvider = finalBundle.providers[0]
 
-    const conversationPassthrough = readPlatformPassthrough(finalConversation.extensions, 'cherry') as Record<string, unknown>
+    const conversationPassthrough = readPlatformPassthrough(finalConversation.extensions, 'cherry') as Record<
+      string,
+      unknown
+    >
     const messagePassthrough = readPlatformPassthrough(finalMessage.extensions, 'cherry') as Record<string, unknown>
     const providerPassthrough = readPlatformPassthrough(finalProvider.extensions, 'cherry') as Record<string, unknown>
 

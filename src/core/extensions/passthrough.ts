@@ -172,7 +172,7 @@ function readChatbridgeMeta(extensions: Record<string, unknown> | undefined): Ch
  */
 function writeChatbridgeMeta(
   extensions: Record<string, unknown> | undefined,
-  meta: ChatbridgeMeta
+  meta: ChatbridgeMeta,
 ): Record<string, unknown> {
   const next = isRecord(extensions) ? { ...extensions } : {}
   next.__chatbridge = meta
@@ -184,7 +184,7 @@ function writeChatbridgeMeta(
  */
 export function readPlatformPassthrough(
   extensions: Record<string, unknown> | undefined,
-  platform: SourcePlatform
+  platform: SourcePlatform,
 ): unknown {
   const meta = readChatbridgeMeta(extensions)
   return meta.passthrough?.[platform]
@@ -201,7 +201,7 @@ export function capturePlatformPassthrough(
   extensions: Record<string, unknown> | undefined,
   platform: SourcePlatform,
   value: unknown,
-  includeSecrets: boolean
+  includeSecrets: boolean,
 ): Record<string, unknown> {
   const meta = readChatbridgeMeta(extensions)
   const passthrough = isRecord(meta.passthrough) ? { ...meta.passthrough } : {}
@@ -218,7 +218,7 @@ export function capturePlatformPassthrough(
  */
 export function appendLineage(
   extensions: Record<string, unknown> | undefined,
-  item: ChatbridgeLineageItem
+  item: ChatbridgeLineageItem,
 ): Record<string, unknown> {
   const meta = readChatbridgeMeta(extensions)
   const lineage = Array.isArray(meta.lineage) ? [...meta.lineage] : []
@@ -241,7 +241,7 @@ export function mergeWithPlatformPassthrough(
   baseValue: Record<string, unknown>,
   extensions: Record<string, unknown> | undefined,
   platform: SourcePlatform,
-  enabled: boolean
+  enabled: boolean,
 ): Record<string, unknown> {
   if (!enabled) {
     return baseValue
@@ -259,7 +259,7 @@ export function mergeWithPlatformPassthrough(
  * Remove internal ChatBridge metadata while keeping non-ChatBridge extensions.
  */
 export function stripChatbridgeMeta(
-  extensions: Record<string, unknown> | undefined
+  extensions: Record<string, unknown> | undefined,
 ): Record<string, unknown> | undefined {
   if (!isRecord(extensions)) {
     return undefined
@@ -275,7 +275,7 @@ export function stripChatbridgeMeta(
  */
 export function attachTransportExtensions(
   baseValue: Record<string, unknown>,
-  extensions: Record<string, unknown> | undefined
+  extensions: Record<string, unknown> | undefined,
 ): Record<string, unknown> {
   if (!isRecord(extensions)) {
     return baseValue

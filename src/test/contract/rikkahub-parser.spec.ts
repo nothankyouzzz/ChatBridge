@@ -37,18 +37,8 @@ function createTestDb(dbPath: string): void {
 
     db.prepare(
       `INSERT INTO ConversationEntity (id, assistant_id, title, nodes, create_at, update_at, truncate_index, suggestions, is_pinned)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      'conv-1',
-      'assistant-1',
-      'Rikkahub Topic',
-      '[]',
-      1709251200000,
-      1709251500000,
-      -1,
-      '[]',
-      1
-    )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run('conv-1', 'assistant-1', 'Rikkahub Topic', '[]', 1709251200000, 1709251500000, -1, '[]', 1)
 
     const nodeMessages = [
       {
@@ -70,7 +60,7 @@ function createTestDb(dbPath: string): void {
 
     db.prepare(
       `INSERT INTO message_node (id, conversation_id, node_index, messages, select_index)
-       VALUES (?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?)`,
     ).run('node-1', 'conv-1', 0, JSON.stringify(nodeMessages), 0)
 
     const assistantMessages = [
@@ -96,7 +86,7 @@ function createTestDb(dbPath: string): void {
 
     db.prepare(
       `INSERT INTO message_node (id, conversation_id, node_index, messages, select_index)
-       VALUES (?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?)`,
     ).run('node-2', 'conv-1', 1, JSON.stringify(assistantMessages), 0)
   } finally {
     db.close()

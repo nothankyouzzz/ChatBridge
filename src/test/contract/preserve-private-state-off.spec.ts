@@ -27,17 +27,17 @@ test('preservePrivateState=false does not emit transport extensions in generated
     await new ChatboxGenerator().generate(
       bundle,
       { path: chatboxPath },
-      { includeSecrets: true, preservePrivateState: false }
+      { includeSecrets: true, preservePrivateState: false },
     )
     await new CherryGenerator().generate(
       bundle,
       { path: cherryPath },
-      { includeSecrets: true, preservePrivateState: false }
+      { includeSecrets: true, preservePrivateState: false },
     )
     await new RikkahubGenerator().generate(
       bundle,
       { path: rikkahubPath },
-      { includeSecrets: true, preservePrivateState: false }
+      { includeSecrets: true, preservePrivateState: false },
     )
 
     const chatboxText = await fs.readFile(chatboxPath, 'utf8')
@@ -54,8 +54,14 @@ test('preservePrivateState=false does not emit transport extensions in generated
 
     const rows = readRikkahubConversations(dbPath)
     const nodes = readRikkahubMessageNodes(dbPath)
-    assert.equal(rows.some((row) => row.nodes.includes(TRANSPORT_KEY) || row.suggestions.includes(TRANSPORT_KEY)), false)
-    assert.equal(nodes.some((row) => row.messages.includes(TRANSPORT_KEY)), false)
+    assert.equal(
+      rows.some((row) => row.nodes.includes(TRANSPORT_KEY) || row.suggestions.includes(TRANSPORT_KEY)),
+      false,
+    )
+    assert.equal(
+      nodes.some((row) => row.messages.includes(TRANSPORT_KEY)),
+      false,
+    )
   } finally {
     await removeDir(tempDir)
   }

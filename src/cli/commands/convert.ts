@@ -33,15 +33,11 @@ export async function runConvertCommand(params: {
   streamThresholdMb?: number
 }): Promise<void> {
   // Step 1: Parse source backup to Core format
-  const { source, bundle } = await parseWithSource(
-    { path: params.inputPath },
-    params.source,
-    {
-      includeSecrets: params.includeSecrets,
-      preservePrivateState: params.preservePrivateState,
-      streamThresholdMb: params.streamThresholdMb,
-    }
-  )
+  const { source, bundle } = await parseWithSource({ path: params.inputPath }, params.source, {
+    includeSecrets: params.includeSecrets,
+    preservePrivateState: params.preservePrivateState,
+    streamThresholdMb: params.streamThresholdMb,
+  })
 
   // Step 2: Generate target platform artifacts
   const artifacts = await generateForTarget(
@@ -51,7 +47,7 @@ export async function runConvertCommand(params: {
     {
       includeSecrets: params.includeSecrets,
       preservePrivateState: params.preservePrivateState,
-    }
+    },
   )
 
   // Step 3: Build response summary

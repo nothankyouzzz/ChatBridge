@@ -97,7 +97,7 @@ export async function detectSourceParser(input: InputArtifact): Promise<SourcePa
 export async function parseWithSource(
   input: InputArtifact,
   source: SourcePlatform | undefined,
-  options: ParseOptions = {}
+  options: ParseOptions = {},
 ): Promise<{ source: SourcePlatform; bundle: CoreBundle }> {
   const parser = source ? getSourceParser(source) : await detectSourceParser(input)
   const bundle = await parser.parse(input, options)
@@ -122,7 +122,7 @@ export async function generateForTarget(
   bundle: CoreBundle,
   target: SourcePlatform,
   output: OutputTarget,
-  options: GenerateOptions = {}
+  options: GenerateOptions = {},
 ): Promise<GeneratedArtifact[]> {
   const generator = getTargetGenerator(target)
   return generator.generate(bundle, output, options)

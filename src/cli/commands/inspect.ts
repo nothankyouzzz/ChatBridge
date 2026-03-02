@@ -46,11 +46,10 @@ export async function runInspectCommand(params: {
   streamThresholdMb?: number
 }): Promise<void> {
   // Parse the input file with specified or auto-detected source
-  const { source, bundle } = await parseWithSource(
-    { path: params.inputPath },
-    params.source,
-    { includeSecrets: params.includeSecrets, streamThresholdMb: params.streamThresholdMb }
-  )
+  const { source, bundle } = await parseWithSource({ path: params.inputPath }, params.source, {
+    includeSecrets: params.includeSecrets,
+    streamThresholdMb: params.streamThresholdMb,
+  })
 
   // Flatten and aggregate data for statistics
   const messages = bundle.conversations.flatMap((conversation) => conversation.messages)
@@ -59,7 +58,10 @@ export async function runInspectCommand(params: {
 
   // Count large data URIs (over 1MB) that may impact performance
   const largeDataUriCount = parts.filter((part) => {
-    if ((part.type === 'image' || part.type === 'file' || part.type === 'audio' || part.type === 'video') && 'uri' in part) {
+    if (
+      (part.type === 'image' || part.type === 'file' || part.type === 'audio' || part.type === 'video') &&
+      'uri' in part
+    ) {
       return typeof part.uri === 'string' && part.uri.startsWith('data:') && part.uri.length > 1024 * 1024
     }
     return false

@@ -29,7 +29,10 @@ import { isRecord, compactObject } from '../../core/util.ts'
  * Returns `undefined` when nothing is left (all keys were known).
  * Used to collect unknown fields into `extensions` for passthrough preservation.
  */
-function extractUnknownFields(record: Record<string, unknown>, keepKeys: string[]): Record<string, unknown> | undefined {
+function extractUnknownFields(
+  record: Record<string, unknown>,
+  keepKeys: string[],
+): Record<string, unknown> | undefined {
   const set = new Set(keepKeys)
   const unknownEntries = Object.entries(record).filter(([key]) => !set.has(key))
   if (unknownEntries.length === 0) {
@@ -57,7 +60,11 @@ function clampIndex(value: number, max: number): number {
 /**
  * Convert one Chatbox fork list into Core branch variant.
  */
-function mapForkListToVariant(rawList: unknown, includeSecrets: boolean, fallbackId: string): CoreBranchVariant | undefined {
+function mapForkListToVariant(
+  rawList: unknown,
+  includeSecrets: boolean,
+  fallbackId: string,
+): CoreBranchVariant | undefined {
   if (!isRecord(rawList)) {
     return undefined
   }
@@ -81,7 +88,7 @@ function mapForkListToVariant(rawList: unknown, includeSecrets: boolean, fallbac
  */
 function buildBranchPointsFromForkHash(
   rawForks: unknown,
-  includeSecrets: boolean
+  includeSecrets: boolean,
 ): { branchPoints: CoreBranchPoint[]; branches: CoreBranch[] } {
   if (!isRecord(rawForks)) {
     return { branchPoints: [], branches: [] }
@@ -106,7 +113,7 @@ function buildBranchPointsFromForkHash(
 
     const selectedVariantIndex = clampIndex(
       typeof rawFork.position === 'number' ? rawFork.position : 0,
-      variants.length
+      variants.length,
     )
 
     const point: CoreBranchPoint = {
@@ -152,7 +159,7 @@ function buildBranchPointsFromForkHash(
  */
 function buildChatboxForkHashFromBranchPoints(
   conversation: CoreConversation,
-  preservePrivateState: boolean
+  preservePrivateState: boolean,
 ): Record<string, unknown> | undefined {
   const output: Record<string, unknown> = {}
 
@@ -183,7 +190,7 @@ function buildChatboxForkHashFromBranchPoints(
         },
         variant.extensions,
         'chatbox',
-        preservePrivateState
+        preservePrivateState,
       )
     })
 
@@ -197,7 +204,7 @@ function buildChatboxForkHashFromBranchPoints(
       },
       point.extensions,
       'chatbox',
-      preservePrivateState
+      preservePrivateState,
     )
   }
 
@@ -360,7 +367,7 @@ export function mapChatboxMessageToCore(rawMessage: unknown, includeSecrets: boo
         .map((item) =>
           item && typeof item === 'object' && typeof (item as Record<string, unknown>).type === 'string'
             ? (item as Record<string, unknown>).type
-            : undefined
+            : undefined,
         )
         .filter((item): item is string => Boolean(item))
         .join(',')
@@ -423,7 +430,10 @@ export function mapChatboxMessageToCore(rawMessage: unknown, includeSecrets: boo
 /**
  * Map one Chatbox session into CoreConversation.
  */
-export function mapChatboxSessionToCore(rawSession: unknown, includeSecrets: boolean = false): CoreConversation | undefined {
+export function mapChatboxSessionToCore(
+  rawSession: unknown,
+  includeSecrets: boolean = false,
+): CoreConversation | undefined {
   if (!rawSession || typeof rawSession !== 'object') {
     return undefined
   }
@@ -437,13 +447,17 @@ export function mapChatboxSessionToCore(rawSession: unknown, includeSecrets: boo
   const rawMessages = Array.isArray(session.messages) ? session.messages : []
   const messages = rawMessages.map((item) => mapChatboxMessageToCore(item, includeSecrets))
 
-  const createdAtFromMessages = messages.map((m) => toEpochMillis(m.createdAt)).filter((v): v is number => v !== undefined)
+  const createdAtFromMessages = messages
+    .map((m) => toEpochMillis(m.createdAt))
+    .filter((v): v is number => v !== undefined)
   const updatedAtFromMessages = messages
     .map((m) => toEpochMillis(m.finishedAt ?? m.createdAt))
     .filter((v): v is number => v !== undefined)
 
-  const createdAt = createdAtFromMessages.length > 0 ? new Date(Math.min(...createdAtFromMessages)).toISOString() : undefined
-  const updatedAt = updatedAtFromMessages.length > 0 ? new Date(Math.max(...updatedAtFromMessages)).toISOString() : undefined
+  const createdAt =
+    createdAtFromMessages.length > 0 ? new Date(Math.min(...createdAtFromMessages)).toISOString() : undefined
+  const updatedAt =
+    updatedAtFromMessages.length > 0 ? new Date(Math.max(...updatedAtFromMessages)).toISOString() : undefined
 
   const { branchPoints, branches } = buildBranchPointsFromForkHash(session.messageForksHash, includeSecrets)
 
@@ -453,22 +467,22 @@ export function mapChatboxSessionToCore(rawSession: unknown, includeSecrets: boo
   let extensions = compactObject({
     ...(transportExtensions ?? {}),
     ...(extractUnknownFields(session, [
-    'id',
-    'name',
-    'copilotId',
-    'starred',
-    'messages',
-    'type',
-    'hidden',
-    'settings',
-    'threadName',
-    'threads',
-    'messageForksHash',
-    'compactionPoints',
-    'assistantAvatarKey',
-    'picUrl',
-    '__chatbridge_extensions',
-  ]) ?? {}),
+      'id',
+      'name',
+      'copilotId',
+      'starred',
+      'messages',
+      'type',
+      'hidden',
+      'settings',
+      'threadName',
+      'threads',
+      'messageForksHash',
+      'compactionPoints',
+      'assistantAvatarKey',
+      'picUrl',
+      '__chatbridge_extensions',
+    ]) ?? {}),
   })
 
   if (passthrough) {
@@ -512,7 +526,13 @@ export function mapChatboxProvidersToCore(rawProviders: unknown, includeSecrets:
       ...(transportExtensions ?? {}),
       ...(extractUnknownFields(provider, ['apiKey', 'apiHost', 'endpoint', 'models', '__chatbridge_extensions']) ?? {}),
     })
-    const passthrough = extractUnknownFields(provider, ['apiKey', 'apiHost', 'endpoint', 'models', '__chatbridge_extensions'])
+    const passthrough = extractUnknownFields(provider, [
+      'apiKey',
+      'apiHost',
+      'endpoint',
+      'models',
+      '__chatbridge_extensions',
+    ])
     if (passthrough) {
       extensions = capturePlatformPassthrough(extensions, 'chatbox', passthrough, includeSecrets)
     }
@@ -547,7 +567,13 @@ export function mapChatboxProvidersToCore(rawProviders: unknown, includeSecrets:
             type: typeof modelRecord.type === 'string' ? modelRecord.type : undefined,
             contextWindow: typeof modelRecord.contextWindow === 'number' ? modelRecord.contextWindow : undefined,
             maxOutput: typeof modelRecord.maxOutput === 'number' ? modelRecord.maxOutput : undefined,
-            extensions: extractUnknownFields(modelRecord, ['modelId', 'nickname', 'type', 'contextWindow', 'maxOutput']),
+            extensions: extractUnknownFields(modelRecord, [
+              'modelId',
+              'nickname',
+              'type',
+              'contextWindow',
+              'maxOutput',
+            ]),
           }
         })
         .filter((model): model is NonNullable<typeof model> => Boolean(model)),
@@ -625,7 +651,7 @@ export function mapCorePartToChatboxPart(part: CorePart): Record<string, unknown
  */
 export function mapCoreMessageToChatboxMessage(
   message: CoreMessage,
-  preservePrivateState: boolean = true
+  preservePrivateState: boolean = true,
 ): Record<string, unknown> {
   const usage = message.usage
     ? {
@@ -658,7 +684,7 @@ export function mapCoreMessageToChatboxMessage(
  */
 export function mapCoreConversationToChatboxSession(
   conversation: CoreConversation,
-  preservePrivateState: boolean = true
+  preservePrivateState: boolean = true,
 ): Record<string, unknown> {
   const base = compactObject({
     id: conversation.id,
@@ -679,7 +705,7 @@ export function mapCoreConversationToChatboxSession(
 export function mapCoreProvidersToChatboxSettingsProviders(
   providers: CoreProvider[],
   includeSecrets: boolean,
-  preservePrivateState: boolean = true
+  preservePrivateState: boolean = true,
 ): Record<string, unknown> {
   const output: Record<string, unknown> = {}
 
@@ -694,7 +720,7 @@ export function mapCoreProvidersToChatboxSettingsProviders(
           type: model.type,
           contextWindow: model.contextWindow,
           maxOutput: model.maxOutput,
-        })
+        }),
       ),
     })
 

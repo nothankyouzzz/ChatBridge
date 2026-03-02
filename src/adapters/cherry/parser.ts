@@ -3,7 +3,11 @@ import { createTempDir, removeDir } from '../../io/fs.ts'
 import { readJsonFile } from '../../io/json.ts'
 import { extractZipEntryToFile, listZipEntries } from '../../io/zip.ts'
 import { CoreBundleSchema } from '../../core/schema/core.zod.ts'
-import { appendLineage, capturePlatformPassthrough, readTransportExtensions } from '../../core/extensions/passthrough.ts'
+import {
+  appendLineage,
+  capturePlatformPassthrough,
+  readTransportExtensions,
+} from '../../core/extensions/passthrough.ts'
 import type { CoreBundle, InputArtifact, ParseOptions } from '../../core/schema/core.types.ts'
 import type { SourceParser } from '../types.ts'
 import {
@@ -18,7 +22,7 @@ import {
  */
 async function loadCherryBackup(
   inputPath: string,
-  streamThresholdBytes: number | undefined
+  streamThresholdBytes: number | undefined,
 ): Promise<Record<string, unknown>> {
   const ext = path.extname(inputPath).toLowerCase()
 
@@ -76,7 +80,9 @@ export class CherryParser implements SourceParser {
   async parse(input: InputArtifact, options: ParseOptions = {}): Promise<CoreBundle> {
     // OOM guard: caller can force stream path for large JSON payloads.
     const streamThresholdBytes =
-      typeof options.streamThresholdMb === 'number' ? Math.max(0, Math.round(options.streamThresholdMb * 1024 * 1024)) : undefined
+      typeof options.streamThresholdMb === 'number'
+        ? Math.max(0, Math.round(options.streamThresholdMb * 1024 * 1024))
+        : undefined
     const payload = await loadCherryBackup(input.path, streamThresholdBytes)
 
     const localStorage =
@@ -85,26 +91,28 @@ export class CherryParser implements SourceParser {
         : {}
 
     const persistState = parseCherryPersistRaw(localStorage['persist:cherry-studio'])
-    const indexedDB = payload.indexedDB && typeof payload.indexedDB === 'object' ? (payload.indexedDB as Record<string, unknown>) : {}
+    const indexedDB =
+      payload.indexedDB && typeof payload.indexedDB === 'object' ? (payload.indexedDB as Record<string, unknown>) : {}
 
     const topicMetaMap = buildCherryTopicMetaMap(persistState)
     const conversations = mapCherryTopicsToCoreConversations(
       indexedDB.topics,
       indexedDB.message_blocks,
       topicMetaMap,
-      options.includeSecrets === true
+      options.includeSecrets === true,
     )
 
     const providers = mapCherryProvidersToCore(persistState, options.includeSecrets === true)
 
     // Keep non-core IndexedDB tables opaque for roundtrip preservation.
-    const indexedDBPassthrough = payload.indexedDB && typeof payload.indexedDB === 'object'
-      ? Object.fromEntries(
-          Object.entries(payload.indexedDB as Record<string, unknown>).filter(
-            ([key]) => key !== 'topics' && key !== 'message_blocks'
+    const indexedDBPassthrough =
+      payload.indexedDB && typeof payload.indexedDB === 'object'
+        ? Object.fromEntries(
+            Object.entries(payload.indexedDB as Record<string, unknown>).filter(
+              ([key]) => key !== 'topics' && key !== 'message_blocks',
+            ),
           )
-        )
-      : {}
+        : {}
 
     const transportExtensions = readTransportExtensions(payload)
     let extensions = capturePlatformPassthrough(
@@ -115,7 +123,7 @@ export class CherryParser implements SourceParser {
         indexedDB: indexedDBPassthrough,
         version: payload.version,
       },
-      options.includeSecrets === true
+      options.includeSecrets === true,
     )
     extensions = appendLineage(extensions, {
       from: 'cherry',

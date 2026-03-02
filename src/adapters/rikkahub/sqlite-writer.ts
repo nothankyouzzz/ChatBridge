@@ -106,13 +106,13 @@ export function writeRikkahubSqliteSnapshot(params: {
     const insertConversation = db.prepare(
       `INSERT INTO ConversationEntity
         (id, assistant_id, title, nodes, create_at, update_at, truncate_index, suggestions, is_pinned)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
 
     const insertNode = db.prepare(
       `INSERT INTO message_node
         (id, conversation_id, node_index, messages, select_index)
-       VALUES (?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?)`,
     )
 
     // Use IMMEDIATE to acquire a write lock upfront and avoid deadlocks
@@ -130,7 +130,7 @@ export function writeRikkahubSqliteSnapshot(params: {
           row.updateAt,
           row.truncateIndex,
           row.suggestions,
-          row.isPinned
+          row.isPinned,
         )
       }
 

@@ -3,13 +3,14 @@ import { createTempDir, removeDir, statSafe } from '../../io/fs.ts'
 import { readJsonFile } from '../../io/json.ts'
 import { extractZipEntryToFile, listZipEntries } from '../../io/zip.ts'
 import { CoreBundleSchema } from '../../core/schema/core.zod.ts'
-import { appendLineage, capturePlatformPassthrough, readTransportExtensions } from '../../core/extensions/passthrough.ts'
+import {
+  appendLineage,
+  capturePlatformPassthrough,
+  readTransportExtensions,
+} from '../../core/extensions/passthrough.ts'
 import type { CoreBundle, InputArtifact, ParseOptions } from '../../core/schema/core.types.ts'
 import type { SourceParser } from '../types.ts'
-import {
-  mapRikkahubProvidersToCore,
-  mapRikkahubRowsToCoreConversations,
-} from './mapper.ts'
+import { mapRikkahubProvidersToCore, mapRikkahubRowsToCoreConversations } from './mapper.ts'
 import { readRikkahubConversations, readRikkahubMessageNodes, readSchemaVersion } from './sqlite.ts'
 
 /**
@@ -21,7 +22,7 @@ import { readRikkahubConversations, readRikkahubMessageNodes, readSchemaVersion 
 async function loadSettingsFromZip(
   zipPath: string,
   tempDir: string,
-  streamThresholdBytes: number | undefined
+  streamThresholdBytes: number | undefined,
 ): Promise<Record<string, unknown>> {
   const settingsPath = path.join(tempDir, 'settings.json')
   await extractZipEntryToFile(zipPath, 'settings.json', settingsPath)
@@ -56,7 +57,9 @@ export class RikkahubParser implements SourceParser {
     const tempDir = await createTempDir('chatbridge-rikkahub-')
     // OOM guard: large JSON settings can switch to stream-based read path.
     const streamThresholdBytes =
-      typeof options.streamThresholdMb === 'number' ? Math.max(0, Math.round(options.streamThresholdMb * 1024 * 1024)) : undefined
+      typeof options.streamThresholdMb === 'number'
+        ? Math.max(0, Math.round(options.streamThresholdMb * 1024 * 1024))
+        : undefined
 
     try {
       const entries = await listZipEntries(input.path)
@@ -79,7 +82,7 @@ export class RikkahubParser implements SourceParser {
       const conversations = mapRikkahubRowsToCoreConversations(
         conversationRows,
         nodeRows,
-        options.includeSecrets === true
+        options.includeSecrets === true,
       )
       const providers = mapRikkahubProvidersToCore(settings, options.includeSecrets === true)
 
@@ -91,7 +94,7 @@ export class RikkahubParser implements SourceParser {
         transportExtensions,
         'rikkahub',
         settings,
-        options.includeSecrets === true
+        options.includeSecrets === true,
       )
       extensions = appendLineage(extensions, {
         from: 'rikkahub',

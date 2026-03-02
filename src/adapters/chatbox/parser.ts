@@ -2,12 +2,13 @@ import path from 'node:path'
 import { readJsonFile } from '../../io/json.ts'
 import { CoreBundleSchema } from '../../core/schema/core.zod.ts'
 import type { CoreBundle, InputArtifact, ParseOptions } from '../../core/schema/core.types.ts'
-import { appendLineage, capturePlatformPassthrough, readTransportExtensions } from '../../core/extensions/passthrough.ts'
-import type { SourceParser } from '../types.ts'
 import {
-  mapChatboxProvidersToCore,
-  mapChatboxSessionToCore,
-} from './mapper.ts'
+  appendLineage,
+  capturePlatformPassthrough,
+  readTransportExtensions,
+} from '../../core/extensions/passthrough.ts'
+import type { SourceParser } from '../types.ts'
+import { mapChatboxProvidersToCore, mapChatboxSessionToCore } from './mapper.ts'
 
 /**
  * Lightweight format fingerprint for Chatbox backup payloads.
@@ -46,7 +47,9 @@ export class ChatboxParser implements SourceParser {
   async parse(input: InputArtifact, options: ParseOptions = {}): Promise<CoreBundle> {
     // OOM guard: switch to stream path when caller provides threshold.
     const streamThresholdBytes =
-      typeof options.streamThresholdMb === 'number' ? Math.max(0, Math.round(options.streamThresholdMb * 1024 * 1024)) : undefined
+      typeof options.streamThresholdMb === 'number'
+        ? Math.max(0, Math.round(options.streamThresholdMb * 1024 * 1024))
+        : undefined
     const data = await readJsonFile<Record<string, unknown>>(input.path, { streamThresholdBytes })
 
     const rawSessions: unknown[] = []
@@ -64,12 +67,13 @@ export class ChatboxParser implements SourceParser {
       .map((session) => mapChatboxSessionToCore(session, options.includeSecrets === true))
       .filter((conversation): conversation is NonNullable<typeof conversation> => Boolean(conversation))
 
-    const settings = data.settings && typeof data.settings === 'object' ? (data.settings as Record<string, unknown>) : {}
+    const settings =
+      data.settings && typeof data.settings === 'object' ? (data.settings as Record<string, unknown>) : {}
     const providers = mapChatboxProvidersToCore(settings.providers, options.includeSecrets === true)
 
     // Keep an opaque snapshot of Chatbox-native payload for lossless return.
     const passthroughBundle = Object.fromEntries(
-      Object.entries(data).filter(([key]) => key === 'settings' || key.startsWith('session:') || key.startsWith('__'))
+      Object.entries(data).filter(([key]) => key === 'settings' || key.startsWith('session:') || key.startsWith('__')),
     )
 
     const transportExtensions = readTransportExtensions(data)
@@ -77,7 +81,7 @@ export class ChatboxParser implements SourceParser {
       transportExtensions,
       'chatbox',
       passthroughBundle,
-      options.includeSecrets === true
+      options.includeSecrets === true,
     )
     extensions = appendLineage(extensions, {
       from: 'chatbox',

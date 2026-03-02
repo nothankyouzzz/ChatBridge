@@ -72,27 +72,33 @@ cli
   .command('inspect')
   .argument('<input>', 'Input backup path (.json or .zip)')
   .addOption(
-    new Option('--source <platform>', 'Force parser source: chatbox|cherry|rikkahub')
-      .argParser((value) => parsePlatform(value, '--source'))
+    new Option('--source <platform>', 'Force parser source: chatbox|cherry|rikkahub').argParser((value) =>
+      parsePlatform(value, '--source'),
+    ),
   )
   .option('--include-secrets', 'Include secret provider fields in parse result', false)
   .addOption(
     new Option('--stream-threshold-mb <n>', 'Switch large JSON reads to stream parse path').argParser((value) =>
-      parseNonNegativeNumber(value, '--stream-threshold-mb')
-    )
+      parseNonNegativeNumber(value, '--stream-threshold-mb'),
+    ),
   )
-  .action(async (inputPath: string, options: {
-    source?: SourcePlatform
-    includeSecrets?: boolean
-    streamThresholdMb?: number
-  }) => {
-    await runInspectCommand({
-      inputPath,
-      source: options.source,
-      includeSecrets: options.includeSecrets === true,
-      streamThresholdMb: options.streamThresholdMb,
-    })
-  })
+  .action(
+    async (
+      inputPath: string,
+      options: {
+        source?: SourcePlatform
+        includeSecrets?: boolean
+        streamThresholdMb?: number
+      },
+    ) => {
+      await runInspectCommand({
+        inputPath,
+        source: options.source,
+        includeSecrets: options.includeSecrets === true,
+        streamThresholdMb: options.streamThresholdMb,
+      })
+    },
+  )
 
 cli
   .command('convert')
@@ -100,43 +106,49 @@ cli
   .addOption(
     new Option('--to <platform>', 'Target platform: chatbox|cherry|rikkahub')
       .makeOptionMandatory(true)
-      .argParser((value) => parsePlatform(value, '--to'))
+      .argParser((value) => parsePlatform(value, '--to')),
   )
   .requiredOption('--out <output>', 'Output file or directory path')
   .addOption(
-    new Option('--from <platform>', 'Force parser source: chatbox|cherry|rikkahub')
-      .argParser((value) => parsePlatform(value, '--from'))
+    new Option('--from <platform>', 'Force parser source: chatbox|cherry|rikkahub').argParser((value) =>
+      parsePlatform(value, '--from'),
+    ),
   )
   .option('--include-secrets', 'Include secret provider fields in generated output', false)
   .addOption(
     new Option(
       '--preserve-private-state [value]',
-      'Preserve passthrough/transport private state (true|false)'
-    ).argParser((value) => parseBooleanish(value, '--preserve-private-state'))
+      'Preserve passthrough/transport private state (true|false)',
+    ).argParser((value) => parseBooleanish(value, '--preserve-private-state')),
   )
   .addOption(
     new Option('--stream-threshold-mb <n>', 'Switch large JSON reads to stream parse path').argParser((value) =>
-      parseNonNegativeNumber(value, '--stream-threshold-mb')
-    )
+      parseNonNegativeNumber(value, '--stream-threshold-mb'),
+    ),
   )
-  .action(async (inputPath: string, options: {
-    to: SourcePlatform
-    out: string
-    from?: SourcePlatform
-    includeSecrets?: boolean
-    preservePrivateState?: boolean
-    streamThresholdMb?: number
-  }) => {
-    await runConvertCommand({
-      inputPath,
-      outputPath: options.out,
-      source: options.from,
-      target: options.to,
-      includeSecrets: options.includeSecrets === true,
-      preservePrivateState: options.preservePrivateState ?? true,
-      streamThresholdMb: options.streamThresholdMb,
-    })
-  })
+  .action(
+    async (
+      inputPath: string,
+      options: {
+        to: SourcePlatform
+        out: string
+        from?: SourcePlatform
+        includeSecrets?: boolean
+        preservePrivateState?: boolean
+        streamThresholdMb?: number
+      },
+    ) => {
+      await runConvertCommand({
+        inputPath,
+        outputPath: options.out,
+        source: options.from,
+        target: options.to,
+        includeSecrets: options.includeSecrets === true,
+        preservePrivateState: options.preservePrivateState ?? true,
+        streamThresholdMb: options.streamThresholdMb,
+      })
+    },
+  )
 
 async function main(): Promise<void> {
   await cli.parseAsync(process.argv)
