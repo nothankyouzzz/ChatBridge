@@ -10,14 +10,21 @@ Complete command-line interface documentation for ChatBridge.
 chatbridge <command> [arguments] [flags]
 ```
 
-In this repository, commands are exposed via npm scripts:
+To expose `chatbridge` as a local shell command in this repository:
 
 ```bash
-npm run inspect -- <arguments> [flags]
-npm run convert -- <arguments> [flags]
+pnpm link --global
+chatbridge --help
 ```
 
-> **Note:** Use `--` so npm forwards arguments to ChatBridge.
+If you prefer not to link globally, you can still use pnpm scripts:
+
+```bash
+pnpm run inspect -- <arguments> [flags]
+pnpm run convert -- <arguments> [flags]
+```
+
+> **Note:** Use `--` so pnpm forwards arguments to ChatBridge scripts.
 
 ---
 
@@ -28,7 +35,7 @@ npm run convert -- <arguments> [flags]
 ### Synopsis
 
 ```bash
-npm run inspect -- <input> [--source chatbox|cherry|rikkahub] [--include-secrets] [--stream-threshold-mb <n>]
+chatbridge inspect <input> [--source chatbox|cherry|rikkahub] [--include-secrets] [--stream-threshold-mb <n>]
 ```
 
 ### Arguments
@@ -48,9 +55,9 @@ npm run inspect -- <input> [--source chatbox|cherry|rikkahub] [--include-secrets
 ### Examples
 
 ```bash
-npm run inspect -- ./backups/chatbox-export.json
-npm run inspect -- ./backup.zip --source rikkahub
-npm run inspect -- ./large-backup.json --stream-threshold-mb 50
+chatbridge inspect ./backups/chatbox-export.json
+chatbridge inspect ./backup.zip --source rikkahub
+chatbridge inspect ./large-backup.json --stream-threshold-mb 50
 ```
 
 ### Output
@@ -75,7 +82,7 @@ npm run inspect -- ./large-backup.json --stream-threshold-mb 50
 ### Synopsis
 
 ```bash
-npm run convert -- <input> --to chatbox|cherry|rikkahub --out <output> [--from chatbox|cherry|rikkahub] [--include-secrets] [--preserve-private-state <true|false>] [--stream-threshold-mb <n>]
+chatbridge convert <input> --to chatbox|cherry|rikkahub --out <output> [--from chatbox|cherry|rikkahub] [--include-secrets] [--preserve-private-state <true|false>] [--stream-threshold-mb <n>]
 ```
 
 ### Arguments
@@ -98,10 +105,10 @@ npm run convert -- <input> --to chatbox|cherry|rikkahub --out <output> [--from c
 ### Examples
 
 ```bash
-npm run convert -- ./chatbox-export.json --to cherry --out ./cherry-backup
-npm run convert -- ./source.json --to rikkahub --out ./output.zip --include-secrets
-npm run convert -- ./source.json --to chatbox --out ./output.json --preserve-private-state false
-npm run convert -- ./huge-backup.json --to cherry --out ./output --stream-threshold-mb 100
+chatbridge convert ./chatbox-export.json --to cherry --out ./cherry-backup
+chatbridge convert ./source.json --to rikkahub --out ./output.zip --include-secrets
+chatbridge convert ./source.json --to chatbox --out ./output.json --preserve-private-state false
+chatbridge convert ./huge-backup.json --to cherry --out ./output --stream-threshold-mb 100
 ```
 
 ### Output
@@ -159,19 +166,19 @@ npm run convert -- ./huge-backup.json --to cherry --out ./output --stream-thresh
 ### Auto-detection failed
 
 ```bash
-npm run convert -- input.json --from chatbox --to cherry --out output
+chatbridge convert input.json --from chatbox --to cherry --out output
 ```
 
 ### Large backup memory pressure
 
 ```bash
-npm run inspect -- input.json --stream-threshold-mb 50
+chatbridge inspect input.json --stream-threshold-mb 50
 ```
 
 ### Provider credentials missing
 
 ```bash
-npm run convert -- input.json --to cherry --out output --include-secrets
+chatbridge convert input.json --to cherry --out output --include-secrets
 ```
 
 ---

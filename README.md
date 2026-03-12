@@ -36,7 +36,7 @@ git clone https://github.com/nothankyouzzz/ChatBridge.git
 cd ChatBridge
 
 # Install dependencies
-npm install
+pnpm install
 ```
 
 ### Basic Usage
@@ -44,13 +44,13 @@ npm install
 **Inspect a backup file:**
 
 ```bash
-npm run inspect -- /path/to/backup.json
+pnpm run inspect -- /path/to/backup.json
 ```
 
 **Convert between platforms:**
 
 ```bash
-npm run convert -- /path/to/chatbox-backup.json --to cherry --out ./output
+pnpm run convert -- /path/to/chatbox-backup.json --to cherry --out ./output
 ```
 
 ---
@@ -61,7 +61,7 @@ npm run convert -- /path/to/chatbox-backup.json --to cherry --out ./output
 
 ```bash
 # Convert Chatbox export to Cherry Studio format
-npm run convert -- chatbox-exported-data.json \
+pnpm run convert -- chatbox-exported-data.json \
   --to cherry \
   --out ./cherry-backup \
   --include-secrets
@@ -76,7 +76,7 @@ This will generate:
 
 ```bash
 # Inspect a backup without including secrets
-npm run inspect -- rikkahub-backup.zip \
+pnpm run inspect -- rikkahub-backup.zip \
   --source rikkahub
 ```
 
@@ -90,7 +90,7 @@ Output includes:
 ### Example 3: Converting Rikkahub to Chatbox
 
 ```bash
-npm run convert -- rikkahub-backup.zip \
+pnpm run convert -- rikkahub-backup.zip \
   --from rikkahub \
   --to chatbox \
   --out ./chatbox-import.json \
@@ -101,7 +101,7 @@ npm run convert -- rikkahub-backup.zip \
 
 ```bash
 # Switch to threshold-based read path for files over 100MB
-npm run convert -- large-backup.json \
+pnpm run convert -- large-backup.json \
   --to cherry \
   --out ./output \
   --stream-threshold-mb 100
@@ -190,7 +190,7 @@ ChatBridge/
 ### Running Tests
 
 ```bash
-npm test
+pnpm test
 ```
 
 Tests use Node's native test runner and cover contract validation for all supported platforms.
